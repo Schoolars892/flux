@@ -1,52 +1,95 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Flux Games</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Games — Flux</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="index.html" class="logo">FLUX</a>
+      <span class="tag">Play fast • Play simple</span>
+    </div>
 
-<nav class="navbar">
-<div class="logo">FLUX</div>
+    <nav class="nav">
+      <button class="nav-toggle" aria-controls="main-nav" aria-expanded="false">☰</button>
+      <ul id="main-nav" class="nav-list">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="games.html" class="active">Games</a></li>
+        <li><a href="info.html">Info</a></li>
+        <li><a href="credits.html">Credits</a></li>
+        <li><a href="donate.html" class="accent">Donate</a></li>
+      </ul>
+    </nav>
 
-<ul>
-<li><a href="index.html">Home</a></li>
-<li><a href="games.html">Games</a></li>
-<li><a href="info.html">Info</a></li>
-<li><a href="credits.html">Credits</a></li>
-<li><a href="donate.html">Donate</a></li>
-</ul>
-</nav>
+    <div class="right-actions">
+      <a class="icon-btn" href="https://github.com/nxtcoreee3/flux" target="_blank" rel="noopener">⭐ Star</a>
+    </div>
+  </header>
 
-<section class="games-page">
+  <main class="games-page">
+    <section class="section">
+      <div class="section-head">
+        <h2>All Games</h2>
+        <div class="controls">
+          <input id="games-search" type="search" placeholder="Search games..." aria-label="Search games">
+          <select id="sort-select" aria-label="Sort games">
+            <option value="featured">Featured</option>
+            <option value="alpha">A → Z</option>
+            <option value="recent">Recently added</option>
+          </select>
+        </div>
+      </div>
 
-<h1>Games</h1>
+      <div id="games-grid" class="grid">
+        <!-- rendered by script.js -->
+      </div>
+    </section>
+  </main>
 
-<div class="game-grid">
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="index.html" class="logo-small">FLUX</a>
+        <p>Curated links • Built by <a href="https://github.com/nxtcoreee3" target="_blank" rel="noopener">nxtcoreee3</a></p>
+      </div>
+      <div class="footer-links">
+        <a href="index.html">Home</a>
+        <a href="info.html">Info</a>
+      </div>
+      <div class="footer-actions">
+        <a class="star-btn" href="https://github.com/nxtcoreee3/flux" target="_blank" rel="noopener">⭐ Star this project</a>
+      </div>
+    </div>
+    <small class="copyright">Flux © <span id="year2"></span></small>
+  </footer>
 
-<div class="game-card">
-<img src="assets/Drive-Mad.png">
-<h3>Drive Mad</h3>
-<a href="https://nxtcoreee3.github.io/Drive-Mad/" class="play-btn">Play</a>
-</div>
+  <!-- Play modal is shared (script will find it on any page) -->
+  <div id="play-modal" class="modal" aria-hidden="true">
+    <div class="modal-backdrop" data-close></div>
+    <aside class="modal-panel" role="dialog" aria-modal="true" aria-label="Play game">
+      <header class="modal-header">
+        <div id="modal-title-2">Loading...</div>
+        <div class="modal-tools">
+          <button id="open-tab-2" class="tool-btn">Open in new tab</button>
+          <button id="close-modal-2" class="tool-btn" aria-label="Close">✕</button>
+        </div>
+      </header>
 
-<div class="game-card">
-<img src="assets/Stickman-Hook.png">
-<h3>Stickman Hook</h3>
-<a href="https://nxtcoreee3.github.io/Stickman-Hook/" class="play-btn">Play</a>
-</div>
+      <div class="modal-body">
+        <div id="iframe-wrap-2" class="iframe-wrap">
+          <iframe id="game-iframe-2" src="" frameborder="0" allow="autoplay; fullscreen" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+        </div>
+        <div id="embed-warning-2" class="embed-warning hidden">
+          This site prevents embedding. <a id="open-fallback-2" href="#" target="_blank" rel="noopener">Open in a new tab</a>
+        </div>
+      </div>
+    </aside>
+  </div>
 
-<div class="game-card">
-<img src="assets/Geometry-Dash-Lite.png">
-<h3>Geometry Dash Lite</h3>
-<a href="https://nxtcoreee3.github.io/Geometry-Dash-Lite/" class="play-btn">Play</a>
-</div>
-
-</div>
-
-</section>
-
+  <script src="script.js" defer></script>
 </body>
 </html>

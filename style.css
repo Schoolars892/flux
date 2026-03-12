@@ -5,7 +5,7 @@
 /* --- Base / Light Mode --- */
 :root{
   --bg:#f5f5f5;                /* main background - light gray */
-  --panel:#ffffff;              /* panel/section background */
+  --panel:#5678C9;              /* panel/section background */
   --glass-bg: rgba(255,255,255,0.7); /* glass effect */
   --glass-border: rgba(0,0,0,0.08);
   --accent:#3a7dff;            /* buttons/links accent */

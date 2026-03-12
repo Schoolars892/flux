@@ -61,6 +61,7 @@ When a user presses Play, they are redirected to the page where the game is host
 If you enjoy Flux, you can support the project:
 
 ⭐ Star the repository
+
 ☕ Buy us a coffee on Ko-Fi
 
 ⸻

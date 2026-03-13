@@ -28,7 +28,14 @@ const GAMES = [
     thumb: 'assets/Geometry-Dash-Lite.png',
     url: 'https://nxtcoreee3.github.io/Geometry-Dash-Lite/',
     desc: 'Rhythm-based platformer — lite'
-  }
+  },
+   {
+  id: 'paper.io',
+  title: 'Paper.io',
+  thumb: 'assets/paper-io.png',
+  url: 'https://nxtcoreee3.github.io/Paper.io/',
+  desc: 'Claim your territory!'
+}
 ];
 
 /* --- Utilities --- */

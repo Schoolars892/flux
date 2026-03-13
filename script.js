@@ -30,12 +30,12 @@ const GAMES = [
     desc: 'Rhythm-based platformer — lite'
   },
    {
-  id: 'paper-io',
+  id: 'paper-io'
   title: 'Paper.io',
   thumb: 'assets/paper-io.png',
   url: 'https://nxtcoreee3.github.io/Paper.io',
   desc: 'Claim your territory and defeat other players!'
-}
+  }
 ];
 
 /* --- Utilities --- */

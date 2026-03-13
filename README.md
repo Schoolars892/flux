@@ -53,6 +53,8 @@ When a user presses Play, they are redirected to the page where the game is host
    
    Geometry-Dash-Lite.png
    
+   Paper-io.png
+   
    IMG_0556.JPG
 
 ⸻

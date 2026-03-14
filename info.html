@@ -13,7 +13,6 @@
       <a href="index.html" class="logo">FLUX</a>
       <span class="tag">Play fast • Play simple</span>
     </div>
-
     <nav class="nav">
       <button class="nav-toggle" aria-controls="main-nav" aria-expanded="false">☰</button>
       <ul id="main-nav" class="nav-list">
@@ -24,7 +23,6 @@
         <li><a href="donate.html" class="accent">Donate</a></li>
       </ul>
     </nav>
-
     <div class="right-actions">
       <a class="icon-btn" href="https://github.com/nxtcoreee3/flux" target="_blank" rel="noopener">⭐ Star</a>
     </div>
@@ -33,18 +31,13 @@
   <main class="info-page">
     <section class="section glass">
       <h2>How Flux Works</h2>
-
       <p>Flux is a curated portal of links to web games. Each game is hosted on its own public page (in this project's case: GitHub Pages). Flux acts as a directory + in-browser launcher — it does not host the games itself.</p>
-
       <h3>Embedding & Fallbacks</h3>
       <p>Flux attempts to embed games in a modal (iframe) for a seamless experience. Some sites prevent embedding for security (via headers). When that happens Flux will show a clear message and provide a one-click fallback that opens the game in a new tab.</p>
-
       <h3>Respect Network Rules</h3>
       <p>Flux links to publicly available pages. It is important to respect the usage policies of your network or institution. If a page is blocked by a network administrator, follow the rules provided by that administrator.</p>
-
       <h3>Privacy & Safety</h3>
       <p>Flux does not collect personal data. Game pages themselves may collect analytics or use cookies — review each game's page if you have privacy concerns.</p>
-
       <h3>Contributing</h3>
       <p>To add a new game: add a thumbnail to <code>/assets</code> and a new card in the games list. The UI is data-driven in <code>script.js</code> so you can add entries there to populate the site automatically.</p>
     </section>
@@ -60,6 +53,6 @@
     <small class="copyright">Flux © <span id="year3"></span></small>
   </footer>
 
-  <script src="script.js" defer></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

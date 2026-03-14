@@ -43,10 +43,7 @@
           </select>
         </div>
       </div>
-
-      <div id="games-grid" class="grid">
-        <!-- rendered by script.js -->
-      </div>
+      <div id="games-grid" class="grid"></div>
     </section>
   </main>
 
@@ -67,7 +64,6 @@
     <small class="copyright">Flux © <span id="year2"></span></small>
   </footer>
 
-  <!-- Play modal is shared (script will find it on any page) -->
   <div id="play-modal" class="modal" aria-hidden="true">
     <div class="modal-backdrop" data-close></div>
     <aside class="modal-panel" role="dialog" aria-modal="true" aria-label="Play game">
@@ -78,7 +74,6 @@
           <button id="close-modal-2" class="tool-btn" aria-label="Close">✕</button>
         </div>
       </header>
-
       <div class="modal-body">
         <div id="iframe-wrap-2" class="iframe-wrap">
           <iframe id="game-iframe-2" src="" frameborder="0" allow="autoplay; fullscreen" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
@@ -90,6 +85,6 @@
     </aside>
   </div>
 
-  <script src="script.js" defer></script>
+  <script type="module" src="script.js"></script>
 </body>
 </html>

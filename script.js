@@ -5,7 +5,10 @@
    - Search & sort
    - Favorites (localStorage)
    - Small responsive nav
+   - Firebase Auth
 */
+
+import { initAuthUI } from './firebase-auth.js';
 
 const GAMES = [
   {
@@ -186,6 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
   if(document.getElementById('quick-search')){
     document.getElementById('quick-search').addEventListener('input', debounce(applyFilters, 120));
   }
+  // init Firebase auth UI
+  initAuthUI();
 });
 
 /* --- Play modal: robust iframe embedding with fallback --- */

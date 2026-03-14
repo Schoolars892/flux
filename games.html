@@ -13,7 +13,6 @@
       <a href="index.html" class="logo">FLUX</a>
       <span class="tag">Play fast • Play simple</span>
     </div>
-
     <nav class="nav">
       <button class="nav-toggle" aria-controls="main-nav" aria-expanded="false">☰</button>
       <ul id="main-nav" class="nav-list">
@@ -24,14 +23,22 @@
         <li><a href="donate.html" class="accent">Donate</a></li>
       </ul>
     </nav>
-
     <div class="right-actions">
       <a class="icon-btn" href="https://github.com/nxtcoreee3/flux" target="_blank" rel="noopener">⭐ Star</a>
     </div>
   </header>
 
   <main class="games-page">
-    <!-- Favourites section (hidden when empty) -->
+
+    <!-- Recently Played (hidden when empty) -->
+    <section class="section" id="recent-section" style="display:none;">
+      <div class="section-head">
+        <h2>🕹️ Recently Played</h2>
+      </div>
+      <div id="recent-grid" class="grid"></div>
+    </section>
+
+    <!-- Favourites (hidden when empty) -->
     <section class="section" id="favourites-section" style="display:none;">
       <div class="section-head">
         <h2>⭐ Favourites</h2>
@@ -39,7 +46,7 @@
       <div id="favourites-grid" class="grid"></div>
     </section>
 
-    <!-- All games section -->
+    <!-- All Games -->
     <section class="section">
       <div class="section-head">
         <h2>All Games</h2>
@@ -54,6 +61,7 @@
       </div>
       <div id="games-grid" class="grid"></div>
     </section>
+
   </main>
 
   <footer class="site-footer">

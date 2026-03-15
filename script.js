@@ -5,6 +5,20 @@
 
 import { initAuthUI, loadCloudFavs, saveCloudFavs } from './firebase-auth.js';
 
+<html>
+  <head>
+    <title>reCAPTCHA demo: Simple page</title>
+    <script src="https://www.google.com/recaptcha/enterprise.js" async defer></script>
+  </head>
+  <body>
+    <form action="" method="POST">
+      <div class="g-recaptcha" data-sitekey="6LdMvoosAAAAAIrWasR-f3h5LfPtfh8HCn0v2xVs" data-action="LOGIN"></div>
+      <br/>
+      <input type="submit" value="Submit">
+    </form>
+  </body>
+</html>
+
 const GAMES = [
   {
     id: 'drive-mad',

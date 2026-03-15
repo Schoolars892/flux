@@ -54,6 +54,13 @@ const GAMES = [
    thumb: 'assets/polytrack.png',
    url: 'https://nxtcoreee3.github.io/Polytrack/',
    desc: 'Drive and race against your older records.'
+  },
+  {
+  id: 'drift-boss',
+  title: 'Drift Boss',
+  thumb: 'assets/drift-boss.png',
+  url: 'https://nxtcoreee3.github.io/Drift-Boss/',
+  desc: 'Drift around tight corners and stay on the track as long as possible.'
   }
 ];
 

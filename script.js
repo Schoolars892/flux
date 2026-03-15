@@ -55,8 +55,7 @@ const GAMES = [
    thumb: 'assets/polytrack.png',
    url: 'https://nxtcoreee3.github.io/Polytrack/',
    desc: 'Drive and race against your older records.'
-   isNew: true
-}
+   }
 ];
 
 /* --- Utilities --- */

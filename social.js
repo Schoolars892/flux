@@ -104,32 +104,54 @@ async function getCachedProfile(uid) {
   return p;
 }
 
+let _lastChatDocId = null;
+
+function renderChatSnap(snap, currentUser) {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+  const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
+
+  container.innerHTML = '';
+
+  if (snap.empty) {
+    container.innerHTML = '<div class="chat-empty">No messages yet. Say hi! 👋</div>';
+    return;
+  }
+
+  snap.docs.forEach(docSnap => {
+    const msg = { id: docSnap.id, ...docSnap.data() };
+    const el = renderMessageSync(msg, currentUser);
+    container.appendChild(el);
+    patchMessageBadges(el, msg.uid);
+  });
+
+  // Track last message id for poll comparison
+  _lastChatDocId = snap.docs[snap.docs.length - 1]?.id || null;
+
+  if (wasAtBottom) container.scrollTop = container.scrollHeight;
+}
+
 function startChatListener(currentUser) {
   if (_unsubChat) _unsubChat();
 
   const q = query(collection(db, 'chat'), orderBy('sentAt', 'asc'), limit(MAX_MESSAGES));
+
+  // Primary: real-time listener
   _unsubChat = onSnapshot(q, (snap) => {
-    const container = document.getElementById('chat-messages');
-    const wasAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 60;
-
-    container.innerHTML = '';
-
-    if (snap.empty) {
-      container.innerHTML = '<div class="chat-empty">No messages yet. Say hi! 👋</div>';
-      return;
-    }
-
-    // Render immediately with baked-in data, then patch badges async
-    snap.docs.forEach(docSnap => {
-      const msg = { id: docSnap.id, ...docSnap.data() };
-      const el = renderMessageSync(msg, currentUser);
-      container.appendChild(el);
-      // Patch badges in background without blocking render
-      patchMessageBadges(el, msg.uid);
-    });
-
-    if (wasAtBottom) container.scrollTop = container.scrollHeight;
+    renderChatSnap(snap, currentUser);
   });
+
+  // Fallback poll every 2s for mobile Safari
+  setInterval(async () => {
+    try {
+      const { getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const snap = await getDocs(q);
+      const latestId = snap.docs[snap.docs.length - 1]?.id || null;
+      if (latestId !== _lastChatDocId) {
+        renderChatSnap(snap, currentUser);
+      }
+    } catch {}
+  }, 2000);
 }
 
 function renderMessageSync(msg, currentUser) {

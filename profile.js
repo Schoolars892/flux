@@ -117,18 +117,16 @@ function renderProfile(profile, { isOwn, isAdmin, isFollowing, canSeeContent, cu
     const activeRoleIds = currentRoles.map(r => r.id);
     const isTargetOwner = profile.uid === OWNER_UID;
 
-    // Rank buttons — only owner can assign ranks, can't change other owners
-    const rankSection = isAdmin && !isTargetOwner ? `
+    const rankSection = !isTargetOwner ? `
       <div style="margin-bottom:14px;">
         <div style="font-size:11px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Rank</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap;">
           <button class="rank-btn" data-rank="user" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #e5e7eb;background:${currentRank==='user'?'#6b7280':'#fff'};color:${currentRank==='user'?'#fff':'#6b7280'};">👤 User</button>
           <button class="rank-btn" data-rank="admin" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #3a7dff;background:${currentRank==='admin'?'#3a7dff':'#fff'};color:${currentRank==='admin'?'#fff':'#3a7dff'};">⚡ Admin</button>
-          <button class="rank-btn" data-rank="owner" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #d97706;background:${currentRank==='owner'?'linear-gradient(135deg,#f59e0b,#d97706)':'#fff'};color:${currentRank==='owner'?'#fff':'#d97706'};">👑 Owner</button>
         </div>
         <div id="rank-msg" style="font-size:11px;margin-top:6px;display:none;"></div>
       </div>
-    ` : isTargetOwner ? `<div style="font-size:12px;color:#6b7280;margin-bottom:14px;padding:8px;background:#f9fafb;border-radius:8px;">🔒 Cannot modify owner rank</div>` : '';
+    ` : `<div style="font-size:12px;color:#6b7280;margin-bottom:14px;padding:8px;background:#f9fafb;border-radius:8px;">🔒 Cannot modify owner rank</div>`;
 
     const predefinedBtns = PREDEFINED_ROLES.map(r => {
       const has = activeRoleIds.includes(r.id);
@@ -171,10 +169,10 @@ function renderProfile(profile, { isOwn, isAdmin, isFollowing, canSeeContent, cu
         <!-- Ban section -->
         ${profile.isBanned
           ? `<button id="unban-btn" style="padding:8px 16px;background:#22c55e;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">✅ Unban User</button>`
-          : !isTargetOwner ? `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          : `<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
               <input id="ban-reason" type="text" placeholder="Ban reason..." style="flex:1;min-width:160px;padding:8px 10px;border:1px solid rgba(239,68,68,0.3);border-radius:8px;font-size:13px;background:transparent;color:var(--text);outline:none;">
               <button id="ban-btn" style="padding:8px 16px;background:#ef4444;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;">🚫 Ban User</button>
-            </div>` : '<div style="font-size:12px;color:#6b7280;padding:8px;background:#f9fafb;border-radius:8px;">🔒 Cannot ban owner</div>'
+            </div>`
         }
       </div>`;
   }
@@ -258,24 +256,6 @@ function renderProfile(profile, { isOwn, isAdmin, isFollowing, canSeeContent, cu
 }
 
 function bindEvents(profile, { isOwn, isAdmin, isFollowing, currentUser }) {
-  // Rank buttons — owner only
-  document.querySelectorAll('.rank-btn').forEach(btn => {
-    btn.addEventListener('click', async () => {
-      const rank = btn.dataset.rank;
-      const msgEl = document.getElementById('rank-msg');
-      btn.disabled = true;
-      const result = await setUserRank(profile.uid, rank);
-      if (msgEl) {
-        msgEl.style.display = 'block';
-        msgEl.style.color = result.ok ? '#22c55e' : '#ef4444';
-        msgEl.textContent = result.ok ? `✓ Rank set to ${rank}` : result.error;
-        setTimeout(() => { if (msgEl) msgEl.style.display = 'none'; }, 2500);
-      }
-      if (result.ok) setTimeout(() => location.reload(), 1000);
-      else btn.disabled = false;
-    });
-  });
-
   // Follow / unfollow
   document.getElementById('follow-btn')?.addEventListener('click', async (e) => {
     const btn = e.currentTarget;
@@ -306,6 +286,24 @@ function bindEvents(profile, { isOwn, isAdmin, isFollowing, currentUser }) {
 
   // Edit profile
   document.getElementById('edit-profile-btn')?.addEventListener('click', () => showEditModal(profile));
+
+  // Rank buttons — owner only
+  document.querySelectorAll('.rank-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const rank = btn.dataset.rank;
+      const msgEl = document.getElementById('rank-msg');
+      btn.disabled = true;
+      const result = await setUserRank(profile.uid, rank);
+      if (msgEl) {
+        msgEl.style.display = 'block';
+        msgEl.style.color = result.ok ? '#22c55e' : '#ef4444';
+        msgEl.textContent = result.ok ? `✓ Rank set to ${rank}` : result.error;
+        setTimeout(() => { if (msgEl) msgEl.style.display = 'none'; }, 2500);
+      }
+      if (result.ok) setTimeout(() => location.reload(), 1000);
+      else btn.disabled = false;
+    });
+  });
 
   // Ban / unban
   document.getElementById('ban-btn')?.addEventListener('click', async () => {

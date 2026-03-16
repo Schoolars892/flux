@@ -411,14 +411,14 @@ export async function createProfile({ uid, username, displayName, bio, isPrivate
 
   // Add this user to owner's followers list (they follow owner, so owner gains a follower)
   if (uid !== OWNER_UID) {
-    const ownerRef = doc(db, 'profiles', OWNER_UID);
-    const ownerSnap = await getDoc(ownerRef);
-    if (ownerSnap.exists()) {
-      const ownerFollowers = ownerSnap.data().followers || [];
-      if (!ownerFollowers.includes(uid)) {
-        await updateDoc(ownerRef, { followers: [...ownerFollowers, uid] });
+    try {
+      const { arrayUnion } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+      const ownerRef = doc(db, 'profiles', OWNER_UID);
+      const ownerSnap = await getDoc(ownerRef);
+      if (ownerSnap.exists()) {
+        await updateDoc(ownerRef, { followers: arrayUnion(uid) });
       }
-    }
+    } catch (e) { console.warn('Could not add to owner followers:', e); }
   }
   return profileData;
 }
@@ -437,13 +437,15 @@ export async function followUser(targetUid) {
     const myRef = doc(db, 'profiles', user.uid);
     const theirRef = doc(db, 'profiles', targetUid);
     const mySnap = await getDoc(myRef);
-    if (!mySnap.exists()) return; // follower has no profile
+    if (!mySnap.exists()) { console.warn('followUser: follower has no profile doc'); return; }
     const myFollowing = mySnap.data().following || [];
-    if (myFollowing.includes(targetUid)) return; // already following
+    if (myFollowing.includes(targetUid)) { console.warn('followUser: already following'); return; }
+    console.log('followUser: updating my following...', user.uid, '->', targetUid);
     await updateDoc(myRef, { following: arrayUnion(targetUid) });
-    // Use setDoc merge so it works even if target profile is missing fields
+    console.log('followUser: updating their followers...', targetUid);
     await updateDoc(theirRef, { followers: arrayUnion(user.uid) });
-  } catch (e) { console.warn('Follow failed:', e); }
+    console.log('followUser: done!');
+  } catch (e) { console.error('Follow failed:', e.code, e.message); }
 }
 
 export async function unfollowUser(targetUid) {

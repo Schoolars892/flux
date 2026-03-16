@@ -941,8 +941,8 @@ export function initChaos() {
     document.querySelectorAll('.chaos-confetti').forEach(el => el.remove());
 
     if (_activeEffects.has('shake')) {
-      getSheet().insertRule(`@keyframes chaos-shake { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-4px,3px)} 40%{transform:translate(4px,-3px)} 60%{transform:translate(-3px,4px)} 80%{transform:translate(3px,-2px)} }`, 0);
-      getSheet().insertRule(`body { animation: chaos-shake 0.4s infinite !important; }`, 1);
+      getSheet().insertRule(`@keyframes chaos-shake { 0%,100%{transform:translate(0,0) rotate(0deg)} 20%{transform:translate(-5px,3px) rotate(-1deg)} 40%{transform:translate(5px,-4px) rotate(1deg)} 60%{transform:translate(-4px,5px) rotate(-0.5deg)} 80%{transform:translate(4px,-3px) rotate(0.5deg)} }`, 0);
+      getSheet().insertRule(`html { animation: chaos-shake 0.35s infinite !important; transform-origin: center center !important; }`, 1);
     }
 
     if (_activeEffects.has('flip')) {

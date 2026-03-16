@@ -339,6 +339,9 @@ export function initAuthUI(onUserChange) {
       <button id="sign-out-btn" style="width:100%;padding:12px 16px;background:none;border:none;text-align:left;cursor:pointer;font-size:13px;color:#ef4444;display:flex;align-items:center;gap:10px;">
         <span>🚪</span> Sign Out
       </button>
+      <button id="mod-panel-btn" style="display:none;width:100%;padding:12px 16px;background:none;border:none;border-top:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:#7c3aed;display:none;align-items:center;gap:10px;">
+        <span>⚙️</span> Mod Panel
+      </button>
     </div>
   `;
   rightActions.prepend(userDisplay);
@@ -452,6 +455,75 @@ export function initAuthUI(onUserChange) {
     }
   });
 
+  // Mod modal
+  const ADMIN_UID = 'zEy6TO5ligf2um4rssIZs9C9X7f2';
+  const modModal = document.createElement('div');
+  modModal.id = 'mod-modal';
+  modModal.style.cssText = 'display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;background:rgba(0,0,0,0.4);backdrop-filter:blur(4px);';
+  modModal.innerHTML = `
+    <div style="background:#fff;border-radius:16px;padding:28px;width:100%;max-width:360px;box-shadow:0 30px 80px rgba(0,0,0,0.2);position:relative;">
+      <button id="mod-modal-close" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:18px;cursor:pointer;color:#6b7280;">✕</button>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+        <span style="font-size:22px;">⚙️</span>
+        <h3 style="font-family:'Bebas Neue',sans-serif;font-size:26px;margin:0;color:#111827;">Mod Panel</h3>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Server Status</div>
+        <div id="mod-current-status" style="font-size:13px;font-weight:600;color:#111827;padding:10px 12px;background:#f9fafb;border-radius:8px;border:1px solid rgba(0,0,0,0.07);">Loading...</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button id="mod-shutdown-btn" style="padding:11px;background:#ef4444;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">🔴 Shut Down Server</button>
+        <button id="mod-crash-btn" style="padding:11px;background:#f59e0b;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">💥 Fake Server Crash</button>
+        <button id="mod-restore-btn" style="padding:11px;background:#22c55e;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">✅ Restore Server</button>
+      </div>
+      <p id="mod-msg" style="font-size:12px;margin:10px 0 0;text-align:center;display:none;"></p>
+    </div>
+  `;
+  document.body.appendChild(modModal);
+
+  document.getElementById('mod-modal-close').addEventListener('click', () => { modModal.style.display = 'none'; });
+  modModal.addEventListener('click', (e) => { if (e.target === modModal) modModal.style.display = 'none'; });
+
+  async function setServerStatus(status, message) {
+    const msg = document.getElementById('mod-msg');
+    try {
+      await setDoc(doc(db, 'stats', 'server'), { status, message, updatedAt: new Date().toISOString() });
+      msg.style.color = '#22c55e';
+      msg.textContent = `Status set to "${status}"`;
+      msg.style.display = 'block';
+      document.getElementById('mod-current-status').textContent = `${status} — ${message}`;
+      setTimeout(() => { msg.style.display = 'none'; }, 2500);
+    } catch (e) {
+      msg.style.color = '#ef4444';
+      msg.textContent = 'Failed to update status.';
+      msg.style.display = 'block';
+    }
+  }
+
+  document.getElementById('mod-shutdown-btn').addEventListener('click', () =>
+    setServerStatus('shutdown', 'The server has been shut down by an admin. Please check back later.'));
+  document.getElementById('mod-crash-btn').addEventListener('click', () =>
+    setServerStatus('crash', 'An unexpected error occurred and the server has crashed. We\'re working on a fix.'));
+  document.getElementById('mod-restore-btn').addEventListener('click', () =>
+    setServerStatus('online', 'online'));
+
+  // Open mod modal and load current status
+  document.getElementById('mod-panel-btn').addEventListener('click', async (e) => {
+    e.stopPropagation();
+    document.getElementById('profile-dropdown').style.display = 'none';
+    modModal.style.display = 'flex';
+    const snap = await getDoc(doc(db, 'stats', 'server'));
+    const statusEl = document.getElementById('mod-current-status');
+    if (snap.exists()) {
+      const { status, message } = snap.data();
+      statusEl.textContent = `${status} — ${message}`;
+      statusEl.style.color = status === 'online' ? '#22c55e' : status === 'crash' ? '#f59e0b' : '#ef4444';
+    } else {
+      statusEl.textContent = 'online — no issues';
+      statusEl.style.color = '#22c55e';
+    }
+  });
+
   function showAuthError(msg) {
     const el = document.getElementById('auth-error');
     el.textContent = msg.replace('Firebase: ', '').replace(/\(auth\/.*\)/, '').trim();
@@ -468,6 +540,10 @@ export function initAuthUI(onUserChange) {
       const profileEmail = document.getElementById('profile-email');
       const profileAvatarLarge = document.getElementById('profile-avatar-large');
       const profilePlaceholder = document.getElementById('profile-avatar-placeholder');
+      const modBtn = document.getElementById('mod-panel-btn');
+
+      // Show mod panel button only for admin
+      if (modBtn) modBtn.style.display = user.uid === ADMIN_UID ? 'flex' : 'none';
 
       if (user.isAnonymous) {
         name.textContent = 'Guest';
@@ -510,5 +586,47 @@ export function initAuthUI(onUserChange) {
       userDisplay.style.display = 'none';
     }
     if (onUserChange) onUserChange(user);
+  });
+}
+
+/* ===================== SERVER STATUS ===================== */
+export function initServerStatus() {
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ onSnapshot }) => {
+    const statusRef = doc(db, 'stats', 'server');
+    onSnapshot(statusRef, (snap) => {
+      if (!snap.exists()) return;
+      const { status, message } = snap.data();
+      if (status === 'online') {
+        const existing = document.getElementById('server-status-overlay');
+        if (existing) existing.remove();
+        return;
+      }
+
+      // Block the page with an overlay
+      let overlay = document.getElementById('server-status-overlay');
+      if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'server-status-overlay';
+        document.body.appendChild(overlay);
+      }
+
+      const isCrash = status === 'crash';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:16px;background:#0f0f0f;';
+      overlay.innerHTML = `
+        <div style="text-align:center;max-width:480px;padding:32px;">
+          <img src="assets/holyshititcrashed.gif" alt="" style="max-width:280px;width:100%;border-radius:12px;margin-bottom:24px;">
+          <h1 style="font-family:'Bebas Neue',sans-serif;font-size:48px;color:#fff;margin:0 0 12px;">
+            ${isCrash ? 'Server Crashed' : 'Servers are currently shut down!'}
+          </h1>
+          <p style="color:#9ca3af;font-size:15px;line-height:1.6;margin:0 0 24px;">${message}</p>
+          ${isCrash ? `<div style="background:#1f1f1f;border-radius:8px;padding:12px 16px;font-family:monospace;font-size:12px;color:#ef4444;text-align:left;">
+            Error: ECONNREFUSED 500 Internal Server Error<br>
+            at flux.server.js:${Math.floor(Math.random()*900)+100}<br>
+            at processNextTick (internal/process/next_tick.js:68)
+          </div>` : ''}
+          <p style="color:#4b5563;font-size:12px;margin-top:20px;">© Flux ${new Date().getFullYear()}</p>
+        </div>
+      `;
+    });
   });
 }

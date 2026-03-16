@@ -319,8 +319,8 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function showSocialBanner() {
-  // Only show once per session
-  if (sessionStorage.getItem('flux_social_banner_dismissed')) return;
+  // Don't show on social page itself
+  if (window.location.pathname.includes('social.html')) return;
 
   const banner = document.createElement('div');
   banner.id = 'social-beta-banner';
@@ -358,7 +358,6 @@ function showSocialBanner() {
     banner.style.transform = 'translateX(-50%) translateY(20px)';
     banner.style.transition = 'all 0.25s ease';
     setTimeout(() => banner.remove(), 250);
-    sessionStorage.setItem('flux_social_banner_dismissed', '1');
   });
 
   // Auto-dismiss after 8s

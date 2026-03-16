@@ -525,6 +525,8 @@ export function initAuthUI(onUserChange) {
         <button class="abuse-btn" data-effect="confetti" style="padding:10px 8px;border:2px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#111827;">🎉 Confetti</button>
         <button class="abuse-btn" data-effect="crazytext" style="padding:10px 8px;border:2px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#111827;">🤪 Crazy Text</button>
         <button class="abuse-btn" data-effect="colour" style="padding:10px 8px;border:2px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#111827;">🎨 Colour Chaos</button>
+        <button id="mod-jumpscare-btn" style="padding:10px 8px;border:2px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#111827;">😱 Jumpscare</button>
+        <button class="abuse-btn" data-effect="forceiframe" style="padding:10px 8px;border:2px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#111827;grid-column:span 1;">🔒 Force Iframe</button>
         <button id="mod-abuse-stop" style="padding:10px 8px;border:2px solid #ef4444;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:700;color:#ef4444;">🛑 Stop All</button>
       </div>
 
@@ -605,6 +607,19 @@ export function initAuthUI(onUserChange) {
     try {
       await setDoc(doc(db, 'stats', 'chaos'), { effects: [], updatedAt: new Date().toISOString() });
     } catch (e) { console.warn('Chaos stop failed', e); }
+  });
+
+  // Jumpscare — one-shot trigger with unique ID each time
+  document.getElementById('mod-jumpscare-btn').addEventListener('click', async () => {
+    try {
+      await setDoc(doc(db, 'stats', 'jumpscare'), {
+        triggeredAt: new Date().toISOString(),
+        id: Math.random().toString(36).slice(2)
+      });
+      const msg = document.getElementById('mod-msg');
+      msg.style.color = '#22c55e'; msg.textContent = '😱 Jumpscare sent!'; msg.style.display = 'block';
+      setTimeout(() => { msg.style.display = 'none'; }, 2000);
+    } catch (e) { console.warn('Jumpscare failed', e); }
   });
 
   // Open mod modal
@@ -1011,6 +1026,13 @@ export function initChaos() {
       spawnConfetti();
       _confettiInterval = setInterval(spawnConfetti, 120);
     }
+
+    // Force iframe — hide all "Open" buttons so users must play in iframe
+    if (_activeEffects.has('forceiframe')) {
+      getSheet().insertRule(`.open-btn { display: none !important; }`, 0);
+    } else if (prev.has('forceiframe')) {
+      // Restore open buttons when toggled off — handled by clearRules() above
+    }
   }
 
   import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ onSnapshot, getDoc, doc: firestoreDoc }) => {
@@ -1030,6 +1052,69 @@ export function initChaos() {
         const effectsKey = [...effects].sort().join(',');
         const activeKey = [..._activeEffects].sort().join(',');
         if (effectsKey !== activeKey) applyEffects(effects);
+      } catch {}
+    }, 3000);
+  });
+}
+
+/* ===================== JUMPSCARE ===================== */
+export function initJumpscare() {
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ onSnapshot, getDoc, doc: firestoreDoc }) => {
+    let _lastJumpscareId = null;
+
+    function triggerJumpscare() {
+      // Don't jumpscare if overlay or banner already showing (admin)
+      if (document.getElementById('server-status-overlay') || document.getElementById('server-status-banner')) return;
+
+      const overlay = document.createElement('div');
+      overlay.id = 'jumpscare-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;display:flex;align-items:center;justify-content:center;cursor:pointer;';
+      overlay.innerHTML = `<img src="assets/jumpscare.png" alt="" style="max-width:100vw;max-height:100vh;object-fit:contain;animation:jumpscare-pop 0.1s ease-out;">`;
+
+      // Inject keyframe
+      const style = document.createElement('style');
+      style.textContent = `@keyframes jumpscare-pop { 0%{transform:scale(0.5);opacity:0} 100%{transform:scale(1);opacity:1} }`;
+      document.head.appendChild(style);
+      document.body.appendChild(overlay);
+
+      // Try to play a scream sound if browser allows
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.setValueAtTime(800, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.3);
+        gain.gain.setValueAtTime(0.4, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.4);
+        osc.start(); osc.stop(ctx.currentTime + 0.4);
+      } catch {}
+
+      // Auto-dismiss after 2.5s or on click
+      const dismiss = () => { overlay.remove(); style.remove(); };
+      overlay.addEventListener('click', dismiss);
+      setTimeout(dismiss, 2500);
+    }
+
+    const jumpscareRef = firestoreDoc(db, 'stats', 'jumpscare');
+
+    onSnapshot(jumpscareRef, (snap) => {
+      if (!snap.exists()) return;
+      const { id } = snap.data();
+      if (id === _lastJumpscareId) return;
+      _lastJumpscareId = id;
+      triggerJumpscare();
+    });
+
+    // Fallback poll
+    setInterval(async () => {
+      try {
+        const snap = await getDoc(jumpscareRef);
+        if (!snap.exists()) return;
+        const { id } = snap.data();
+        if (id === _lastJumpscareId) return;
+        _lastJumpscareId = id;
+        triggerJumpscare();
       } catch {}
     }, 3000);
   });

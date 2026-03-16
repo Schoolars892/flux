@@ -18,6 +18,8 @@ import {
   doc,
   getDoc,
   setDoc,
+  updateDoc,
+  increment,
   collection,
   getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -85,6 +87,41 @@ async function fetchGlobalFavCount() {
   } catch { return '—'; }
 }
 
+/* ===================== DAILY VISITOR TRACKING ===================== */
+function getSwedishDate() {
+  return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' }); // "YYYY-MM-DD"
+}
+
+// Stores a flag in sessionStorage so we only count once per browser session per day.
+export async function trackDailyVisitor() {
+  const today = getSwedishDate();
+  const storageKey = `flux_visited_${today}`;
+  if (sessionStorage.getItem(storageKey)) return; // already counted this session
+
+  try {
+    const visitorRef = doc(db, 'stats', 'visitors');
+    const snap = await getDoc(visitorRef);
+
+    if (snap.exists() && snap.data().date === today) {
+      // Same day — just increment
+      await updateDoc(visitorRef, { count: increment(1) });
+    } else {
+      // New day (or first ever) — reset counter
+      await setDoc(visitorRef, { date: today, count: 1 });
+    }
+    sessionStorage.setItem(storageKey, '1');
+  } catch (e) { console.warn('Could not track visitor:', e); }
+}
+
+async function fetchVisitorsToday() {
+  try {
+    const today = getSwedishDate();
+    const snap = await getDoc(doc(db, 'stats', 'visitors'));
+    if (snap.exists() && snap.data().date === today) return snap.data().count;
+    return 0;
+  } catch { return '—'; }
+}
+
 /* ===================== STATS BUTTON ===================== */
 export function initStatsButton() {
   const rightActions = document.querySelector('.right-actions');
@@ -119,6 +156,18 @@ export function initStatsButton() {
           <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
             <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse-dot 2s infinite;"></span>
             <span id="stats-online-count" style="font-size:20px;font-weight:700;color:var(--text);">—</span>
+            <span style="font-size:12px;color:var(--muted);">people</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- visitors today -->
+      <div style="padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(168,85,247,0.12);display:flex;align-items:center;justify-content:center;font-size:16px;">📅</div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Visitors today</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+            <span id="stats-visitors-today" style="font-size:20px;font-weight:700;color:var(--text);">—</span>
             <span style="font-size:12px;color:var(--muted);">people</span>
           </div>
         </div>
@@ -169,6 +218,11 @@ export function initStatsButton() {
       document.getElementById('stats-fav-count').textContent = '…';
       const favCount = await fetchGlobalFavCount();
       document.getElementById('stats-fav-count').textContent = favCount;
+
+      // fetch visitors today
+      document.getElementById('stats-visitors-today').textContent = '…';
+      const visitorsToday = await fetchVisitorsToday();
+      document.getElementById('stats-visitors-today').textContent = visitorsToday;
 
       // game count from GAMES array (passed via window)
       const gameCount = window._FLUX_GAME_COUNT || '—';

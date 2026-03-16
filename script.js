@@ -155,6 +155,20 @@ function addRecent(id) {
   let recent = loadRecent();
   recent = [id, ...recent.filter(r => r !== id)].slice(0, MAX_RECENT);
   localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
+  // Sync to Firestore profile if logged in
+  syncRecentlyPlayed(recent);
+}
+
+function syncRecentlyPlayed(recent) {
+  import('./firebase-auth.js').then(({ updateProfile: up }) => {
+    import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js").then(({ getApps }) => {
+      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js").then(({ getAuth }) => {
+        const auth = getAuth(getApps()[0]);
+        const user = auth?.currentUser;
+        if (user && !user.isAnonymous) up(user.uid, { recentlyPlayed: recent });
+      });
+    });
+  }).catch(() => {});
 }
 
 function renderRecentSection() {

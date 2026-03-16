@@ -3,7 +3,7 @@
    favorites (cloud+local), dark mode, toasts, recently played, new badge, stats button
 */
 
-import { initAuthUI, loadCloudFavs, saveCloudFavs, initPresence, initStatsButton, trackDailyVisitor, initServerStatus, initBroadcast, initChaos, initJumpscare } from './firebase-auth.js';
+import { initAuthUI, loadCloudFavs, saveCloudFavs, syncProfileFavs, syncProfileRecents, initPresence, initStatsButton, trackDailyVisitor, initServerStatus, initBroadcast, initChaos, initJumpscare } from './firebase-auth.js';
 
 const GAMES = [
   {
@@ -155,20 +155,7 @@ function addRecent(id) {
   let recent = loadRecent();
   recent = [id, ...recent.filter(r => r !== id)].slice(0, MAX_RECENT);
   localStorage.setItem(RECENT_KEY, JSON.stringify(recent));
-  // Sync to Firestore profile if logged in
-  syncRecentlyPlayed(recent);
-}
-
-function syncRecentlyPlayed(recent) {
-  import('./firebase-auth.js').then(({ updateProfile: up }) => {
-    import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js").then(({ getApps }) => {
-      import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js").then(({ getAuth }) => {
-        const auth = getAuth(getApps()[0]);
-        const user = auth?.currentUser;
-        if (user && !user.isAnonymous) up(user.uid, { recentlyPlayed: recent });
-      });
-    });
-  }).catch(() => {});
+  syncProfileRecents(recent);
 }
 
 function renderRecentSection() {
@@ -209,6 +196,7 @@ async function toggleFav(id) {
   else _favsCache.splice(_favsCache.indexOf(id), 1);
   saveLocalFavs(_favsCache);
   await saveCloudFavs(_favsCache);
+  await syncProfileFavs(_favsCache);
   const countEl = document.getElementById('profile-fav-count');
   if (countEl) countEl.textContent = `${_favsCache.length} favourited game${_favsCache.length !== 1 ? 's' : ''}`;
   const game = GAMES.find(g => g.id === id);
@@ -315,6 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initChaos();
   initJumpscare();
   trackDailyVisitor();
+  showSocialBanner();
 
   if (document.getElementById('game-grid') || document.getElementById('games-grid')) {
     renderGames(GAMES);
@@ -328,6 +317,57 @@ document.addEventListener('DOMContentLoaded', () => {
     if (user && !user.isAnonymous) showToast(`Welcome back! 👋`, 'success');
   });
 });
+
+function showSocialBanner() {
+  // Only show once per session
+  if (sessionStorage.getItem('flux_social_banner_dismissed')) return;
+
+  const banner = document.createElement('div');
+  banner.id = 'social-beta-banner';
+  banner.style.cssText = `
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+    z-index:9000;display:flex;align-items:center;gap:12px;
+    background:var(--panel, #fff);
+    border:1px solid var(--glass-border, rgba(0,0,0,0.08));
+    border-radius:16px;padding:12px 16px;
+    box-shadow:0 12px 40px rgba(0,0,0,0.15);
+    max-width:420px;width:calc(100vw - 48px);
+    animation:banner-slide-up 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+  `;
+  banner.innerHTML = `
+    <style>
+      @keyframes banner-slide-up { from{opacity:0;transform:translateX(-50%) translateY(20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+      @keyframes beta-pulse-banner { 0%,100%{transform:scale(1);opacity:0.4} 50%{transform:scale(1.4);opacity:0} }
+      #social-beta-banner .bp::before { content:''; position:absolute; inset:-2px; border-radius:20px; background:linear-gradient(135deg,#f59e0b,#ef4444); opacity:0.4; animation:beta-pulse-banner 2s ease-in-out infinite; z-index:-1; }
+    </style>
+    <span style="font-size:24px;flex-shrink:0;">💬</span>
+    <div style="flex:1;min-width:0;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+        <span style="font-size:14px;font-weight:700;color:var(--text,#111827);">Chat with other players!</span>
+        <span class="bp" style="display:inline-flex;align-items:center;background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:0.8px;text-transform:uppercase;position:relative;">Beta</span>
+      </div>
+      <div style="font-size:12px;color:var(--muted,#6b7280);">Profiles, follows & global chat — now live.</div>
+    </div>
+    <a href="social.html" style="padding:8px 14px;background:var(--accent,#3a7dff);color:white;border-radius:10px;font-size:13px;font-weight:700;text-decoration:none;white-space:nowrap;flex-shrink:0;">Try it →</a>
+    <button id="social-banner-close" style="background:none;border:none;color:var(--muted,#9ca3af);cursor:pointer;font-size:18px;padding:0 0 0 4px;flex-shrink:0;line-height:1;">✕</button>
+  `;
+  document.body.appendChild(banner);
+
+  document.getElementById('social-banner-close').addEventListener('click', () => {
+    banner.style.opacity = '0';
+    banner.style.transform = 'translateX(-50%) translateY(20px)';
+    banner.style.transition = 'all 0.25s ease';
+    setTimeout(() => banner.remove(), 250);
+    sessionStorage.setItem('flux_social_banner_dismissed', '1');
+  });
+
+  // Auto-dismiss after 8s
+  setTimeout(() => {
+    if (document.getElementById('social-beta-banner')) {
+      document.getElementById('social-banner-close')?.click();
+    }
+  }, 8000);
+}
 
 /* ===================== PLAY MODAL ===================== */
 const MODAL_ID = 'play-modal';

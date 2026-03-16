@@ -290,6 +290,30 @@ export async function loadCloudFavs() {
   } catch { return null; }
 }
 
+export async function syncProfileFavs(favs) {
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous) return;
+  try {
+    const profileRef = doc(db, 'profiles', user.uid);
+    const profileSnap = await getDoc(profileRef);
+    if (profileSnap.exists()) {
+      await updateDoc(profileRef, { favorites: favs });
+    }
+  } catch (e) { console.warn('Could not sync favs to profile:', e); }
+}
+
+export async function syncProfileRecents(recents) {
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous) return;
+  try {
+    const profileRef = doc(db, 'profiles', user.uid);
+    const profileSnap = await getDoc(profileRef);
+    if (profileSnap.exists()) {
+      await updateDoc(profileRef, { recentlyPlayed: recents });
+    }
+  } catch (e) { console.warn('Could not sync recents to profile:', e); }
+}
+
 export async function saveCloudFavs(favs) {
   const user = auth.currentUser;
   if (!user || user.isAnonymous) return;

@@ -3,7 +3,7 @@
    favorites (cloud+local), dark mode, toasts, recently played, new badge, stats button
 */
 
-import { initAuthUI, loadCloudFavs, saveCloudFavs, initPresence, initStatsButton } from './firebase-auth.js';
+import { initAuthUI, loadCloudFavs, saveCloudFavs, initPresence, initStatsButton, trackDailyVisitor } from './firebase-auth.js';
 
 const GAMES = [
   {
@@ -49,20 +49,20 @@ const GAMES = [
     desc: 'Run your own monkey supermarket',
   },
   {
-  id: 'drift-boss',
-  title: 'Drift Boss',
-  thumb: 'assets/drift-boss.png',
-  url: 'https://nxtcoreee3.github.io/Drift-Boss/',
-  desc: 'Drift around tight corners and stay on the track as long as possible.'
+    id: 'drift-boss',
+    title: 'Drift Boss',
+    thumb: 'assets/drift-boss.png',
+    url: 'https://nxtcoreee3.github.io/Drift-Boss/',
+    desc: 'Drift around tight corners and stay on the track as long as possible.'
   },
   {
-  id: 'polytrack',
-  title: 'Polytrack',
-  thumb: 'assets/polytrack.png',
-  url: 'https://nxtcoreee3.github.io/Polytrack/',
-  desc: 'Drive and race against your older records.'
+    id: 'polytrack',
+    title: 'Polytrack',
+    thumb: 'assets/polytrack.png',
+    url: 'https://nxtcoreee3.github.io/Polytrack/',
+    desc: 'Drive and race against your older records.'
   }
-  ];
+];
 
 // expose game count globally for stats button
 window._FLUX_GAME_COUNT = GAMES.length;
@@ -296,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDarkMode();
   initStatsButton();
   initPresence();
+  trackDailyVisitor();
 
   if (document.getElementById('game-grid') || document.getElementById('games-grid')) {
     renderGames(GAMES);

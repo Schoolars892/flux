@@ -1,5 +1,5 @@
 /* firebase-auth.js
-   Handles Firebase Authentication + Firestore favorites + Live visitor counter
+   Handles Firebase Authentication + Firestore favorites + Live visitor counter + Stats button
 */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -17,7 +17,9 @@ import {
   getFirestore,
   doc,
   getDoc,
-  setDoc
+  setDoc,
+  collection,
+  getDocs
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import {
   getDatabase,
@@ -44,14 +46,14 @@ const db = getFirestore(app);
 const rtdb = getDatabase(app);
 const googleProvider = new GoogleAuthProvider();
 
-/* ===================== LIVE VISITOR COUNTER ===================== */
+/* ===================== LIVE PRESENCE ===================== */
+let _onlineCount = 0;
+
 export function initPresence() {
-  // Generate a unique session ID for this tab
   const sessionId = Math.random().toString(36).slice(2);
   const presenceRef = ref(rtdb, `presence/${sessionId}`);
   const connectedRef = ref(rtdb, '.info/connected');
 
-  // When connected, write presence and remove on disconnect
   onValue(connectedRef, (snap) => {
     if (snap.val() === true) {
       set(presenceRef, { online: true, timestamp: serverTimestamp() });
@@ -59,19 +61,122 @@ export function initPresence() {
     }
   });
 
-  // Listen to total online count and update UI
-  const allPresenceRef = ref(rtdb, 'presence');
-  onValue(allPresenceRef, (snap) => {
-    const count = snap.exists() ? Object.keys(snap.val()).length : 0;
-    const el = document.getElementById('visitor-count');
-    if (el) {
-      el.textContent = count;
-      // pulse animation on update
-      el.closest('.visitor-counter')?.classList.remove('pulse');
-      void el.closest('.visitor-counter')?.offsetWidth; // reflow
-      el.closest('.visitor-counter')?.classList.add('pulse');
+  onValue(ref(rtdb, 'presence'), (snap) => {
+    _onlineCount = snap.exists() ? Object.keys(snap.val()).length : 0;
+    // update stats dropdown if open
+    const el = document.getElementById('stats-online-count');
+    if (el) el.textContent = _onlineCount;
+    // update the eye button count
+    const badge = document.getElementById('stats-btn-count');
+    if (badge) badge.textContent = _onlineCount;
+  });
+}
+
+/* ===================== GLOBAL FAV COUNT ===================== */
+async function fetchGlobalFavCount() {
+  try {
+    const snap = await getDocs(collection(db, 'users'));
+    let total = 0;
+    snap.forEach(d => {
+      const favs = d.data().favorites || [];
+      total += favs.length;
+    });
+    return total;
+  } catch { return '—'; }
+}
+
+/* ===================== STATS BUTTON ===================== */
+export function initStatsButton() {
+  const rightActions = document.querySelector('.right-actions');
+  if (!rightActions) return;
+
+  const wrapper = document.createElement('div');
+  wrapper.style.cssText = 'position:relative;display:flex;align-items:center;';
+
+  wrapper.innerHTML = `
+    <button id="stats-btn" class="icon-btn" title="Live stats" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:8px 12px;">
+      <span style="font-size:15px;">👁️</span>
+      <span id="stats-btn-count" style="font-size:13px;font-weight:700;color:var(--accent);">—</span>
+    </button>
+
+    <div id="stats-dropdown" style="
+      display:none;position:absolute;top:calc(100% + 10px);right:0;
+      background:var(--panel);border-radius:14px;
+      box-shadow:0 20px 60px rgba(0,0,0,0.15);
+      border:1px solid var(--glass-border);width:240px;z-index:300;overflow:hidden;
+    ">
+      <!-- header -->
+      <div style="padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:8px;">
+        <span style="font-size:16px;">📊</span>
+        <span style="font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--text);">Flux Stats</span>
+      </div>
+
+      <!-- online now -->
+      <div style="padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(34,197,94,0.12);display:flex;align-items:center;justify-content:center;font-size:16px;">👥</div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Online right now</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+            <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse-dot 2s infinite;"></span>
+            <span id="stats-online-count" style="font-size:20px;font-weight:700;color:var(--text);">—</span>
+            <span style="font-size:12px;color:var(--muted);">people</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- total favourites -->
+      <div style="padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(255,209,102,0.15);display:flex;align-items:center;justify-content:center;font-size:16px;">★</div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Total favourites</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+            <span id="stats-fav-count" style="font-size:20px;font-weight:700;color:var(--text);">—</span>
+            <span style="font-size:12px;color:var(--muted);">across all users</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- total games -->
+      <div style="padding:14px 16px;display:flex;align-items:center;gap:12px;">
+        <div style="width:36px;height:36px;border-radius:10px;background:rgba(58,125,255,0.12);display:flex;align-items:center;justify-content:center;font-size:16px;">🎮</div>
+        <div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Games available</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
+            <span id="stats-game-count" style="font-size:20px;font-weight:700;color:var(--text);">—</span>
+            <span style="font-size:12px;color:var(--muted);">games</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  rightActions.prepend(wrapper);
+
+  const btn = wrapper.querySelector('#stats-btn');
+  const dd = wrapper.querySelector('#stats-dropdown');
+
+  btn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const isOpen = dd.style.display !== 'none';
+    dd.style.display = isOpen ? 'none' : 'block';
+
+    if (!isOpen) {
+      // fill in live data when opening
+      document.getElementById('stats-online-count').textContent = _onlineCount;
+      document.getElementById('stats-btn-count').textContent = _onlineCount;
+
+      // fetch global fav count
+      document.getElementById('stats-fav-count').textContent = '…';
+      const favCount = await fetchGlobalFavCount();
+      document.getElementById('stats-fav-count').textContent = favCount;
+
+      // game count from GAMES array (passed via window)
+      const gameCount = window._FLUX_GAME_COUNT || '—';
+      document.getElementById('stats-game-count').textContent = gameCount;
     }
   });
+
+  document.addEventListener('click', () => { dd.style.display = 'none'; });
 }
 
 /* ===================== AUTH ===================== */
@@ -146,7 +251,6 @@ export function initAuthUI(onUserChange) {
   `;
   rightActions.prepend(userDisplay);
 
-  // Change password modal
   const pwModal = document.createElement('div');
   pwModal.id = 'pw-modal';
   pwModal.style.cssText = 'display:none;position:fixed;inset:0;z-index:400;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);';
@@ -162,7 +266,6 @@ export function initAuthUI(onUserChange) {
   `;
   document.body.appendChild(pwModal);
 
-  // Auth modal
   const modal = document.createElement('div');
   modal.id = 'auth-modal';
   modal.style.cssText = 'display:none;position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:rgba(0,0,0,0.3);backdrop-filter:blur(4px);';
@@ -192,7 +295,6 @@ export function initAuthUI(onUserChange) {
   `;
   document.body.appendChild(modal);
 
-  // Wire buttons
   authBtn.addEventListener('click', () => { modal.style.display = 'flex'; });
   document.getElementById('auth-modal-close').addEventListener('click', () => { modal.style.display = 'none'; });
   modal.addEventListener('click', (e) => { if (e.target === modal) modal.style.display = 'none'; });
@@ -201,26 +303,22 @@ export function initAuthUI(onUserChange) {
     try { await signInWithGoogle(); modal.style.display = 'none'; }
     catch (err) { showAuthError(err.message); }
   });
-
   document.getElementById('email-signin-btn').addEventListener('click', async () => {
     const email = document.getElementById('auth-email').value;
     const password = document.getElementById('auth-password').value;
     try { await signInWithEmail(email, password); modal.style.display = 'none'; }
     catch (err) { showAuthError(err.message); }
   });
-
   document.getElementById('email-register-btn').addEventListener('click', async () => {
     const email = document.getElementById('auth-email').value;
     const password = document.getElementById('auth-password').value;
     try { await registerWithEmail(email, password); modal.style.display = 'none'; }
     catch (err) { showAuthError(err.message); }
   });
-
   document.getElementById('guest-signin-btn').addEventListener('click', async () => {
     try { await signInAsGuest(); modal.style.display = 'none'; }
     catch (err) { showAuthError(err.message); }
   });
-
   document.getElementById('sign-out-btn').addEventListener('click', async () => {
     await logOut();
     document.getElementById('profile-dropdown').style.display = 'none';
@@ -231,7 +329,6 @@ export function initAuthUI(onUserChange) {
     dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
     e.stopPropagation();
   });
-
   document.addEventListener('click', () => {
     const dd = document.getElementById('profile-dropdown');
     if (dd) dd.style.display = 'none';
@@ -242,7 +339,6 @@ export function initAuthUI(onUserChange) {
     document.getElementById('profile-dropdown').style.display = 'none';
     pwModal.style.display = 'flex';
   });
-
   document.getElementById('pw-modal-close').addEventListener('click', () => { pwModal.style.display = 'none'; });
   pwModal.addEventListener('click', (e) => { if (e.target === pwModal) pwModal.style.display = 'none'; });
 

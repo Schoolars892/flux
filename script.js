@@ -1,9 +1,9 @@
 /* script.js — Flux
    Features: game rendering, play modal, search/sort,
-   favorites (cloud+local), dark mode, toasts, recently played, new badge
+   favorites (cloud+local), dark mode, toasts, recently played, new badge, stats button
 */
 
-import { initAuthUI, loadCloudFavs, saveCloudFavs, initPresence } from './firebase-auth.js';
+import { initAuthUI, loadCloudFavs, saveCloudFavs, initPresence, initStatsButton } from './firebase-auth.js';
 
 const GAMES = [
   {
@@ -51,8 +51,10 @@ const GAMES = [
   }
 ];
 
+// expose game count globally for stats button
+window._FLUX_GAME_COUNT = GAMES.length;
+
 /* --- Utilities --- */
-const $ = sel => document.querySelector(sel);
 const quickSearch = document.getElementById('quick-search') || document.getElementById('games-search');
 const sortSelect = document.getElementById('sort-select');
 
@@ -279,6 +281,7 @@ function debounce(fn, wait=120) {
 /* ===================== INIT ===================== */
 document.addEventListener('DOMContentLoaded', () => {
   initDarkMode();
+  initStatsButton();
   initPresence();
 
   if (document.getElementById('game-grid') || document.getElementById('games-grid')) {

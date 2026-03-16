@@ -1252,8 +1252,15 @@ export function initServerStatus() {
 
 /* ===================== BROADCAST ===================== */
 export function initBroadcast() {
-  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ onSnapshot, getDoc, doc: firestoreDoc }) => {
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({ onSnapshot, getDoc, doc: firestoreDoc }) => {
     let _lastBroadcastId = null;
+    const broadcastRef = firestoreDoc(db, 'stats', 'broadcast');
+
+    // Pre-load current ID so we don't show old broadcast on page load
+    try {
+      const initial = await getDoc(broadcastRef);
+      if (initial.exists()) _lastBroadcastId = initial.data().id || null;
+    } catch {}
 
     function showBroadcastToast(message) {
       let container = document.getElementById('toast-container');
@@ -1283,8 +1290,6 @@ export function initBroadcast() {
       }, 5000);
     }
 
-    const broadcastRef = firestoreDoc(db, 'stats', 'broadcast');
-
     // Primary: real-time listener
     onSnapshot(broadcastRef, (snap) => {
       if (!snap.exists()) return;
@@ -1294,7 +1299,7 @@ export function initBroadcast() {
       showBroadcastToast(message);
     });
 
-    // Fallback poll every 3s for mobile browsers
+    // Fallback poll every 1.5s for mobile browsers
     setInterval(async () => {
       try {
         const snap = await getDoc(broadcastRef);
@@ -1304,7 +1309,7 @@ export function initBroadcast() {
         _lastBroadcastId = id;
         showBroadcastToast(message);
       } catch {}
-    }, 3000);
+    }, 1500);
   });
 }
 

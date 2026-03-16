@@ -595,19 +595,17 @@ export function initAuthUI(onUserChange) {
     btn.addEventListener('click', async () => {
       const effect = btn.dataset.effect;
       const isActive = _activeEffects.has(effect);
-      if (isActive) _activeEffects.delete(effect); else _activeEffects.add(effect);
+      const newEffects = new Set(_activeEffects);
+      if (isActive) newEffects.delete(effect); else newEffects.add(effect);
       try {
-        await setDoc(doc(db, 'stats', 'chaos'), { effects: [..._activeEffects], updatedAt: new Date().toISOString() });
-        syncAbuseButtons();
+        await setDoc(doc(db, 'stats', 'chaos'), { effects: [...newEffects], updatedAt: new Date().toISOString() });
       } catch (e) { console.warn('Chaos write failed', e); }
     });
   });
 
   document.getElementById('mod-abuse-stop').addEventListener('click', async () => {
     try {
-      _activeEffects.clear();
       await setDoc(doc(db, 'stats', 'chaos'), { effects: [], updatedAt: new Date().toISOString() });
-      syncAbuseButtons();
     } catch (e) { console.warn('Chaos stop failed', e); }
   });
 
@@ -646,18 +644,14 @@ export function initAuthUI(onUserChange) {
       const active = chaosSnap.exists() ? (chaosSnap.data().effects || []) : [];
       _activeEffects.clear();
       active.forEach(e => _activeEffects.add(e));
-      syncAbuseButtons();
+      modModal.querySelectorAll('.abuse-btn').forEach(btn => {
+        const on = _activeEffects.has(btn.dataset.effect);
+        btn.style.background = on ? '#111827' : '#fff';
+        btn.style.color = on ? '#fff' : '#111827';
+        btn.style.borderColor = on ? '#111827' : '#e5e7eb';
+      });
     } catch {}
   });
-
-  function syncAbuseButtons() {
-    modModal.querySelectorAll('.abuse-btn').forEach(btn => {
-      const on = _activeEffects.has(btn.dataset.effect);
-      btn.style.background = on ? '#dcfce7' : '#fff';
-      btn.style.color = on ? '#15803d' : '#111827';
-      btn.style.borderColor = on ? '#22c55e' : '#e5e7eb';
-    });
-  }
 
   function showAuthError(msg) {
     const el = document.getElementById('auth-error');
@@ -887,15 +881,10 @@ export function initServerStatus() {
 
 /* ===================== BROADCAST ===================== */
 export function initBroadcast() {
-  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({ onSnapshot, getDoc, doc: firestoreDoc }) => {
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ onSnapshot, getDoc, doc: firestoreDoc }) => {
     let _lastBroadcastId = null;
-    const broadcastRef = firestoreDoc(db, 'stats', 'broadcast');
 
-    // Initialize on load so we don't show old messages on page open
-    try {
-      const initial = await getDoc(broadcastRef);
-      if (initial.exists()) _lastBroadcastId = initial.data().id || null;
-    } catch {}
+    function showBroadcastToast(message) {
       let container = document.getElementById('toast-container');
       if (!container) {
         container = document.createElement('div');
@@ -923,6 +912,8 @@ export function initBroadcast() {
       }, 5000);
     }
 
+    const broadcastRef = firestoreDoc(db, 'stats', 'broadcast');
+
     // Primary: real-time listener
     onSnapshot(broadcastRef, (snap) => {
       if (!snap.exists()) return;
@@ -932,7 +923,7 @@ export function initBroadcast() {
       showBroadcastToast(message);
     });
 
-    // Fallback poll every 1.5s for mobile browsers
+    // Fallback poll every 3s for mobile browsers
     setInterval(async () => {
       try {
         const snap = await getDoc(broadcastRef);
@@ -942,7 +933,7 @@ export function initBroadcast() {
         _lastBroadcastId = id;
         showBroadcastToast(message);
       } catch {}
-    }, 1500);
+    }, 3000);
   });
 }
 
@@ -993,7 +984,7 @@ export function initChaos() {
     if (_activeEffects.has('colour')) {
       const col = COLOURS[Math.floor(Math.random() * COLOURS.length)];
       getSheet().insertRule(`:root { --accent: ${col} !important; --primary: ${col} !important; }`, 0);
-      getSheet().insertRule(`.play-btn { background-color: ${col} !important; border-color: ${col} !important; }`, 1);
+      getSheet().insertRule(`a, button, .play-btn { background-color: ${col} !important; border-color: ${col} !important; }`, 1);
     }
 
     if (_activeEffects.has('crazytext')) {
@@ -1036,25 +1027,16 @@ export function initChaos() {
       _confettiInterval = setInterval(spawnConfetti, 120);
     }
 
-    // Force iframe — hide all "Open" and "Open in new tab" buttons
+    // Force iframe — hide all "Open" buttons so users must play in iframe
     if (_activeEffects.has('forceiframe')) {
       getSheet().insertRule(`.open-btn { display: none !important; }`, 0);
-      getSheet().insertRule(`#open-tab-btn { display: none !important; }`, 0);
-      document.querySelectorAll('.open-btn').forEach(btn => { btn.style.display = 'none'; });
     } else if (prev.has('forceiframe')) {
-      document.querySelectorAll('.open-btn').forEach(btn => { btn.style.display = ''; });
+      // Restore open buttons when toggled off — handled by clearRules() above
     }
   }
 
-  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({ onSnapshot, getDoc, doc: firestoreDoc }) => {
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ onSnapshot, getDoc, doc: firestoreDoc }) => {
     const chaosRef = firestoreDoc(db, 'stats', 'chaos');
-
-    // Initialize active effects on load so poll doesn't false-trigger
-    try {
-      const initial = await getDoc(chaosRef);
-      const effects = initial.exists() ? (initial.data().effects || []) : [];
-      applyEffects(effects);
-    } catch {}
 
     // Primary: real-time listener
     onSnapshot(chaosRef, (snap) => {
@@ -1062,7 +1044,7 @@ export function initChaos() {
       applyEffects(effects);
     });
 
-    // Fallback poll every 1.5s for mobile
+    // Fallback poll every 3s for mobile browsers that drop WebSocket connections
     setInterval(async () => {
       try {
         const snap = await getDoc(chaosRef);
@@ -1071,47 +1053,31 @@ export function initChaos() {
         const activeKey = [..._activeEffects].sort().join(',');
         if (effectsKey !== activeKey) applyEffects(effects);
       } catch {}
-    }, 1500);
+    }, 3000);
   });
 }
 
 /* ===================== JUMPSCARE ===================== */
 export function initJumpscare() {
-  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({ onSnapshot, getDoc, doc: firestoreDoc }) => {
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ onSnapshot, getDoc, doc: firestoreDoc }) => {
     let _lastJumpscareId = null;
-    const jumpscareRef = firestoreDoc(db, 'stats', 'jumpscare');
-
-    // Read current ID on load so we don't false-trigger on page open
-    try {
-      const initial = await getDoc(jumpscareRef);
-      if (initial.exists()) _lastJumpscareId = initial.data().id || null;
-    } catch {}
 
     function triggerJumpscare() {
-      // Admin sees a toast confirmation instead of the jumpscare
-      if (document.getElementById('server-status-banner') || (auth.currentUser && auth.currentUser.uid === 'zEy6TO5ligf2um4rssIZs9C9X7f2')) {
-        let container = document.getElementById('toast-container');
-        if (!container) { container = document.createElement('div'); container.id = 'toast-container'; container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;'; document.body.appendChild(container); }
-        const t = document.createElement('div');
-        t.style.cssText = 'background:#111827;border-radius:12px;padding:12px 16px;box-shadow:0 8px 30px rgba(0,0,0,0.3);border-left:4px solid #22c55e;font-size:13px;font-weight:600;color:#22c55e;pointer-events:all;opacity:0;transform:translateY(8px);transition:all 0.25s ease;';
-        t.textContent = '✅ Jumpscare deployed to all users!';
-        container.appendChild(t);
-        requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
-        setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; setTimeout(() => t.remove(), 250); }, 3000);
-        return;
-      }
-      if (document.getElementById('server-status-overlay')) return;
+      // Don't jumpscare if overlay or banner already showing (admin)
+      if (document.getElementById('server-status-overlay') || document.getElementById('server-status-banner')) return;
 
       const overlay = document.createElement('div');
       overlay.id = 'jumpscare-overlay';
       overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;display:flex;align-items:center;justify-content:center;cursor:pointer;';
       overlay.innerHTML = `<img src="assets/jumpscare.png" alt="" style="max-width:100vw;max-height:100vh;object-fit:contain;animation:jumpscare-pop 0.1s ease-out;">`;
 
+      // Inject keyframe
       const style = document.createElement('style');
       style.textContent = `@keyframes jumpscare-pop { 0%{transform:scale(0.5);opacity:0} 100%{transform:scale(1);opacity:1} }`;
       document.head.appendChild(style);
       document.body.appendChild(overlay);
 
+      // Try to play a scream sound if browser allows
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
@@ -1124,12 +1090,14 @@ export function initJumpscare() {
         osc.start(); osc.stop(ctx.currentTime + 0.4);
       } catch {}
 
+      // Auto-dismiss after 2.5s or on click
       const dismiss = () => { overlay.remove(); style.remove(); };
       overlay.addEventListener('click', dismiss);
       setTimeout(dismiss, 2500);
     }
 
-    // Primary: real-time listener
+    const jumpscareRef = firestoreDoc(db, 'stats', 'jumpscare');
+
     onSnapshot(jumpscareRef, (snap) => {
       if (!snap.exists()) return;
       const { id } = snap.data();
@@ -1138,7 +1106,7 @@ export function initJumpscare() {
       triggerJumpscare();
     });
 
-    // Fallback poll every 1.5s for mobile
+    // Fallback poll
     setInterval(async () => {
       try {
         const snap = await getDoc(jumpscareRef);
@@ -1148,6 +1116,6 @@ export function initJumpscare() {
         _lastJumpscareId = id;
         triggerJumpscare();
       } catch {}
-    }, 1500);
+    }, 3000);
   });
 }

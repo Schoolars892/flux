@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Social — Flux</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <meta name="theme-color" content="#0f1724">
+  <style>
+    .social-layout {
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px 16px;
+      align-items: start;
+    }
+    @media (max-width: 780px) {
+      .social-layout { grid-template-columns: 1fr; }
+      .social-sidebar { order: -1; }
+    }
+
+    /* ── Chat ── */
+    .chat-box {
+      background: var(--panel);
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      display: flex;
+      flex-direction: column;
+      height: 620px;
+    }
+    .chat-header {
+      padding: 18px 20px;
+      border-bottom: 1px solid var(--glass-border);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+    .chat-header-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 22px;
+      color: var(--text);
+      margin: 0;
+    }
+    .chat-live-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 6px #22c55e;
+      animation: pulse-dot 2s infinite;
+      flex-shrink: 0;
+    }
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      scroll-behavior: smooth;
+    }
+    .chat-messages::-webkit-scrollbar { width: 4px; }
+    .chat-messages::-webkit-scrollbar-thumb { background: var(--glass-border); border-radius: 2px; }
+
+    .chat-msg {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .chat-msg-avatar {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      object-fit: cover;
+      flex-shrink: 0;
+      border: 1px solid var(--glass-border);
+    }
+    .chat-msg-avatar-placeholder {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 12px;
+      flex-shrink: 0;
+    }
+    .chat-msg-body { flex: 1; min-width: 0; }
+    .chat-msg-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 3px;
+      flex-wrap: wrap;
+    }
+    .chat-msg-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      text-decoration: none;
+    }
+    .chat-msg-name:hover { color: var(--accent); }
+    .chat-msg-time {
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .chat-msg-text {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    .chat-msg-delete {
+      background: none;
+      border: none;
+      color: var(--muted);
+      cursor: pointer;
+      font-size: 12px;
+      padding: 0 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+      flex-shrink: 0;
+    }
+    .chat-msg:hover .chat-msg-delete { opacity: 1; }
+
+    .chat-input-wrap {
+      padding: 14px 16px;
+      border-top: 1px solid var(--glass-border);
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .chat-input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--glass-border);
+      border-radius: 20px;
+      font-size: 14px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      font-family: inherit;
+      transition: border-color 0.15s;
+    }
+    .chat-input:focus { border-color: var(--accent); }
+    .chat-send-btn {
+      width: 38px; height: 38px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: none;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    .chat-send-btn:hover { opacity: 0.85; }
+    .chat-signin-prompt {
+      padding: 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .chat-empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      margin: auto;
+      padding: 20px;
+    }
+
+    /* ── Sidebar ── */
+    .social-sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .sidebar-card {
+      background: var(--panel);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 20px;
+    }
+    .sidebar-title {
+      font-family: 'Bebas Neue', sans-serif;
+      font-size: 18px;
+      color: var(--text);
+      margin: 0 0 14px;
+    }
+
+    /* Search */
+    .search-input-wrap {
+      position: relative;
+      margin-bottom: 12px;
+    }
+    .search-input-wrap input {
+      width: 100%;
+      padding: 9px 12px 9px 34px;
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      font-size: 13px;
+      background: var(--bg);
+      color: var(--text);
+      outline: none;
+      box-sizing: border-box;
+      font-family: inherit;
+    }
+    .search-input-wrap input:focus { border-color: var(--accent); }
+    .search-input-wrap::before {
+      content: '🔍';
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 13px;
+      pointer-events: none;
+    }
+    .search-results { display: flex; flex-direction: column; gap: 8px; }
+    .search-result-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-radius: 10px;
+      text-decoration: none;
+      transition: background 0.1s;
+      cursor: pointer;
+    }
+    .search-result-item:hover { background: var(--bg); }
+    .search-result-avatar {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 1px solid var(--glass-border);
+      flex-shrink: 0;
+    }
+    .search-result-placeholder {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      color: white; font-weight: 700; font-size: 14px;
+      flex-shrink: 0;
+    }
+    .search-result-info { flex: 1; min-width: 0; }
+    .search-result-name { font-size: 13px; font-weight: 700; color: var(--text); display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .search-result-username { font-size: 11px; color: var(--muted); }
+    .search-empty { font-size: 13px; color: var(--muted); text-align: center; padding: 8px 0; }
+
+    /* Online users */
+    .online-list { display: flex; flex-direction: column; gap: 6px; }
+    .online-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text);
+      text-decoration: none;
+      padding: 4px 0;
+    }
+    .online-item:hover { color: var(--accent); }
+    .online-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="index.html" class="logo">FLUX</a>
+      <span class="tag">Play fast • Play simple</span>
+    </div>
+    <nav class="nav">
+      <button class="nav-toggle" aria-controls="main-nav" aria-expanded="false">☰</button>
+      <ul id="main-nav" class="nav-list">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="games.html">Games</a></li>
+        <li><a href="social.html" class="active">Social</a></li>
+        <li><a href="info.html">Info</a></li>
+        <li><a href="credits.html">Credits</a></li>
+        <li><a href="donate.html" class="accent">Donate</a></li>
+      </ul>
+    </nav>
+    <div class="right-actions">
+      <a class="icon-btn" href="https://github.com/nxtcoreee3/flux" target="_blank" rel="noopener">⭐ Star</a>
+      <a class="cta" href="games.html">Play Now</a>
+    </div>
+  </header>
+
+  <div class="social-layout">
+    <!-- Chat -->
+    <div class="chat-box">
+      <div class="chat-header">
+        <span class="chat-live-dot"></span>
+        <h2 class="chat-header-title">Global Chat</h2>
+        <span id="chat-online-count" style="font-size:12px;color:var(--muted);margin-left:auto;"></span>
+      </div>
+      <div id="chat-messages" class="chat-messages">
+        <div class="chat-empty">Loading messages...</div>
+      </div>
+      <div id="chat-input-area" class="chat-input-wrap" style="display:none;">
+        <input id="chat-input" class="chat-input" type="text" placeholder="Say something..." maxlength="300" autocomplete="off">
+        <button id="chat-send" class="chat-send-btn" title="Send">➤</button>
+      </div>
+      <div id="chat-signin-prompt" class="chat-signin-prompt" style="display:none;">
+        <p>You need a profile to chat.</p>
+        <a href="index.html" style="color:var(--accent);font-size:13px;font-weight:600;">Sign in on the home page →</a>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="social-sidebar">
+      <!-- Search -->
+      <div class="sidebar-card">
+        <div class="sidebar-title">🔍 Find Players</div>
+        <div class="search-input-wrap">
+          <input id="user-search-input" type="text" placeholder="Search by username..." autocomplete="off">
+        </div>
+        <div id="search-results" class="search-results">
+          <div class="search-empty">Type to search for players</div>
+        </div>
+      </div>
+
+      <!-- My profile quick link -->
+      <div id="my-profile-card" class="sidebar-card" style="display:none;">
+        <div class="sidebar-title">👤 My Profile</div>
+        <div id="my-profile-preview"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <a href="index.html" class="logo-small">FLUX</a>
+        <p>Curated links • Hosted games • Built by <a href="https://github.com/nxtcoreee3" target="_blank" rel="noopener">nxtcoreee3</a></p>
+      </div>
+      <div class="footer-links">
+        <a href="games.html">Games</a>
+        <a href="info.html">Info</a>
+        <a href="credits.html">Credits</a>
+        <a href="donate.html">Donate</a>
+      </div>
+      <div class="footer-actions">
+        <a class="star-btn" href="https://github.com/nxtcoreee3/flux" target="_blank" rel="noopener">⭐ Star this project</a>
+        <a class="coffee-btn" href="https://ko-fi.com/nxtcoreee3" target="_blank" rel="noopener">☕ Buy us a coffee</a>
+      </div>
+    </div>
+    <small class="copyright">Flux © <span id="year"></span> · All rights reserved</small>
+  </footer>
+
+  <script type="module" src="social.js"></script>
+</body>
+</html>

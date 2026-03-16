@@ -433,16 +433,16 @@ export async function followUser(targetUid) {
   const user = auth.currentUser;
   if (!user || user.isAnonymous) return;
   try {
+    const { arrayUnion } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const myRef = doc(db, 'profiles', user.uid);
     const theirRef = doc(db, 'profiles', targetUid);
-    const [mySnap, theirSnap] = await Promise.all([getDoc(myRef), getDoc(theirRef)]);
-    if (!mySnap.exists() || !theirSnap.exists()) return;
+    const mySnap = await getDoc(myRef);
+    if (!mySnap.exists()) return; // follower has no profile
     const myFollowing = mySnap.data().following || [];
-    const theirFollowers = theirSnap.data().followers || [];
-    if (!myFollowing.includes(targetUid)) {
-      await updateDoc(myRef, { following: [...myFollowing, targetUid] });
-      await updateDoc(theirRef, { followers: [...theirFollowers, user.uid] });
-    }
+    if (myFollowing.includes(targetUid)) return; // already following
+    await updateDoc(myRef, { following: arrayUnion(targetUid) });
+    // Use setDoc merge so it works even if target profile is missing fields
+    await updateDoc(theirRef, { followers: arrayUnion(user.uid) });
   } catch (e) { console.warn('Follow failed:', e); }
 }
 
@@ -450,12 +450,11 @@ export async function unfollowUser(targetUid) {
   const user = auth.currentUser;
   if (!user || user.isAnonymous) return;
   try {
+    const { arrayRemove } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const myRef = doc(db, 'profiles', user.uid);
     const theirRef = doc(db, 'profiles', targetUid);
-    const [mySnap, theirSnap] = await Promise.all([getDoc(myRef), getDoc(theirRef)]);
-    if (!mySnap.exists() || !theirSnap.exists()) return;
-    await updateDoc(myRef, { following: (mySnap.data().following || []).filter(id => id !== targetUid) });
-    await updateDoc(theirRef, { followers: (theirSnap.data().followers || []).filter(id => id !== user.uid) });
+    await updateDoc(myRef, { following: arrayRemove(targetUid) });
+    await updateDoc(theirRef, { followers: arrayRemove(user.uid) });
   } catch (e) { console.warn('Unfollow failed:', e); }
 }
 

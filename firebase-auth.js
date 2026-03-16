@@ -525,7 +525,7 @@ export const PREDEFINED_ROLES = [
   { id: 'og',        label: 'OG',        emoji: '🏆', color: '#d97706' },
 ];
 
-export function renderBadges(badges = [], roles = []) {
+export function renderBadges(badges = [], roles = [], rank = '') {
   const badgeHTML = badges.map(b => {
     if (b === 'owner') return `<span style="display:inline-flex;align-items:center;gap:3px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:0.3px;">👑 Owner</span>`;
     if (b === 'admin') return `<span style="display:inline-flex;align-items:center;gap:3px;background:#3a7dff;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:0.3px;">⚡ Admin</span>`;
@@ -544,6 +544,33 @@ export function renderBadges(badges = [], roles = []) {
   }).join(' ');
 
   return [badgeHTML, roleHTML].filter(Boolean).join(' ');
+}
+
+export async function setUserRank(targetUid, rank) {
+  const user = auth.currentUser;
+  if (!user || user.uid !== OWNER_UID) return { ok: false, error: 'Only the owner can assign ranks.' };
+  if (targetUid === OWNER_UID) return { ok: false, error: 'Cannot change owner rank.' };
+  try {
+    const ref = doc(db, 'profiles', targetUid);
+    const snap = await getDoc(ref);
+    if (!snap.exists()) return { ok: false, error: 'Profile not found.' };
+
+    // Update rank and sync badges array
+    const badges = snap.data().badges || [];
+    let newBadges = badges.filter(b => b !== 'admin' && b !== 'owner');
+    if (rank === 'admin') newBadges = [...newBadges, 'admin'];
+    if (rank === 'owner') newBadges = [...newBadges, 'admin', 'owner'];
+
+    await updateDoc(ref, { rank, badges: newBadges });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+export async function getUserRank(targetUid) {
+  try {
+    const snap = await getDoc(doc(db, 'profiles', targetUid));
+    return snap.exists() ? (snap.data().rank || 'user') : 'user';
+  } catch { return 'user'; }
 }
 
 export async function assignRole(targetUid, role) {
@@ -955,6 +982,12 @@ export function initAuthUI(onUserChange) {
 
   async function setServerStatus(status, message) {
     const msg = document.getElementById('mod-msg');
+    // Only owner can fake crash
+    if (status === 'crash' && auth.currentUser?.uid !== ADMIN_UID) {
+      msg.style.color = '#ef4444'; msg.textContent = 'Only the owner can trigger a fake crash.'; msg.style.display = 'block';
+      setTimeout(() => { msg.style.display = 'none'; }, 3000);
+      return;
+    }
     const durationMins = parseInt(document.getElementById('mod-duration').value) || 0;
     const restoreAt = durationMins > 0 ? new Date(Date.now() + durationMins * 60000).toISOString() : null;
     try {
@@ -1040,6 +1073,23 @@ export function initAuthUI(onUserChange) {
     e.stopPropagation();
     document.getElementById('profile-dropdown').style.display = 'none';
     modModal.style.display = 'flex';
+
+    // Determine rank and configure panel
+    const user = auth.currentUser;
+    const userProfile = user ? await getProfile(user.uid) : null;
+    const userRank = user?.uid === ADMIN_UID ? 'owner' : (userProfile?.rank || 'user');
+    const rankLabel = document.getElementById('mod-rank-label');
+    const crashSection = document.getElementById('mod-crash-section');
+
+    if (rankLabel) {
+      rankLabel.textContent = userRank === 'owner' ? '👑 Owner Panel' : '⚡ Admin Panel';
+      rankLabel.style.color = userRank === 'owner' ? '#d97706' : '#3a7dff';
+    }
+    // Only owner can fake crash
+    if (crashSection) crashSection.style.display = userRank === 'owner' ? 'flex' : 'none';
+    if (crashSection) crashSection.style.flexDirection = 'column';
+    if (crashSection) crashSection.style.gap = '8px';
+
     const snap = await getDoc(doc(db, 'stats', 'server'));
     const statusEl = document.getElementById('mod-current-status');
     if (snap.exists()) {
@@ -1057,12 +1107,7 @@ export function initAuthUI(onUserChange) {
       const active = chaosSnap.exists() ? (chaosSnap.data().effects || []) : [];
       _activeEffects.clear();
       active.forEach(e => _activeEffects.add(e));
-      modModal.querySelectorAll('.abuse-btn').forEach(btn => {
-        const on = _activeEffects.has(btn.dataset.effect);
-        btn.style.background = on ? '#111827' : '#fff';
-        btn.style.color = on ? '#fff' : '#111827';
-        btn.style.borderColor = on ? '#111827' : '#e5e7eb';
-      });
+      syncAbuseButtons();
     } catch {}
   });
 
@@ -1084,24 +1129,18 @@ export function initAuthUI(onUserChange) {
       const profilePlaceholder = document.getElementById('profile-avatar-placeholder');
       const modBtn = document.getElementById('mod-panel-btn');
 
-      // Show mod panel for owner and admins — rank checked from profile
-      if (!user.isAnonymous) {
-        const rank = user.uid === ADMIN_UID ? 'owner' : null;
-        // We'll update after profile loads below
-        if (user.uid === ADMIN_UID && modBtn) modBtn.style.display = 'flex';
-      }
-
       if (!user.isAnonymous) {
         // Check for profile and trigger setup if missing
         const profile = await getProfile(user.uid);
         if (!profile) {
+          if (modBtn) modBtn.style.display = user.uid === ADMIN_UID ? 'flex' : 'none';
           initProfileSetup((p) => {
-            // Update display name in nav if profile created
             if (p && name) name.textContent = p.displayName || p.username;
           });
         } else {
-          // Use profile display name in nav
-          if (name) name.textContent = profile.displayName || profile.username || user.displayName || user.email;
+          // Show mod panel for owner and anyone with admin/owner rank
+          const userRank = user.uid === ADMIN_UID ? 'owner' : (profile.rank || 'user');
+          if (modBtn) modBtn.style.display = (userRank === 'owner' || userRank === 'admin') ? 'flex' : 'none';
           // Show profile link in dropdown
           const profileLinkEl = document.getElementById('view-profile-btn');
           if (profileLinkEl) profileLinkEl.style.display = 'flex';

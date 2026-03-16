@@ -51,6 +51,25 @@ const googleProvider = new GoogleAuthProvider();
 /* ===================== LIVE PRESENCE ===================== */
 let _onlineCount = 0;
 
+async function updatePeakOnline(count) {
+  try {
+    const peakRef = doc(db, 'stats', 'peak');
+    const snap = await getDoc(peakRef);
+    const current = snap.exists() ? (snap.data().count || 0) : 0;
+    if (count > current) {
+      await setDoc(peakRef, { count, date: new Date().toISOString() });
+    }
+  } catch (e) { console.warn('Could not update peak:', e); }
+}
+
+export async function fetchPeakOnline() {
+  try {
+    const snap = await getDoc(doc(db, 'stats', 'peak'));
+    if (snap.exists()) return snap.data().count;
+    return '—';
+  } catch { return '—'; }
+}
+
 export function initPresence() {
   const sessionId = Math.random().toString(36).slice(2);
   const presenceRef = ref(rtdb, `presence/${sessionId}`);
@@ -71,6 +90,8 @@ export function initPresence() {
     // update the eye button count
     const badge = document.getElementById('stats-btn-count');
     if (badge) badge.textContent = _onlineCount;
+    // check and update peak
+    if (_onlineCount > 0) updatePeakOnline(_onlineCount);
   });
 }
 
@@ -92,11 +113,11 @@ function getSwedishDate() {
   return new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' }); // "YYYY-MM-DD"
 }
 
-// Stores a flag in sessionStorage so we only count once per browser session per day.
+// Stores a flag in localStorage so each device is only counted once per day.
 export async function trackDailyVisitor() {
   const today = getSwedishDate();
   const storageKey = `flux_visited_${today}`;
-  if (sessionStorage.getItem(storageKey)) return; // already counted this session
+  if (localStorage.getItem(storageKey)) return; // already counted today on this device
 
   try {
     const visitorRef = doc(db, 'stats', 'visitors');
@@ -109,7 +130,7 @@ export async function trackDailyVisitor() {
       // New day (or first ever) — reset counter
       await setDoc(visitorRef, { date: today, count: 1 });
     }
-    sessionStorage.setItem(storageKey, '1');
+    localStorage.setItem(storageKey, '1');
   } catch (e) { console.warn('Could not track visitor:', e); }
 }
 
@@ -151,12 +172,15 @@ export function initStatsButton() {
       <!-- online now -->
       <div style="padding:14px 16px;border-bottom:1px solid var(--glass-border);display:flex;align-items:center;gap:12px;">
         <div style="width:36px;height:36px;border-radius:10px;background:rgba(34,197,94,0.12);display:flex;align-items:center;justify-content:center;font-size:16px;">👥</div>
-        <div>
+        <div style="flex:1;">
           <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;">Online right now</div>
           <div style="display:flex;align-items:center;gap:6px;margin-top:2px;">
             <span style="width:7px;height:7px;border-radius:50%;background:#22c55e;display:inline-block;animation:pulse-dot 2s infinite;"></span>
             <span id="stats-online-count" style="font-size:20px;font-weight:700;color:var(--text);">—</span>
             <span style="font-size:12px;color:var(--muted);">people</span>
+          </div>
+          <div id="stats-peak-row" style="margin-top:4px;font-size:11px;color:var(--muted);cursor:pointer;display:none;" title="All-time peak concurrent users">
+            🏆 Peak: <span id="stats-peak-count" style="font-weight:700;color:var(--text);">—</span>
           </div>
         </div>
       </div>
@@ -223,6 +247,13 @@ export function initStatsButton() {
       document.getElementById('stats-visitors-today').textContent = '…';
       const visitorsToday = await fetchVisitorsToday();
       document.getElementById('stats-visitors-today').textContent = visitorsToday;
+
+      // fetch peak online and show it
+      const peak = await fetchPeakOnline();
+      const peakCount = document.getElementById('stats-peak-count');
+      const peakRow = document.getElementById('stats-peak-row');
+      if (peakCount) peakCount.textContent = peak;
+      if (peakRow) peakRow.style.display = 'block';
 
       // game count from GAMES array (passed via window)
       const gameCount = window._FLUX_GAME_COUNT || '—';

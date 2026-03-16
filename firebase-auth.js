@@ -307,6 +307,260 @@ export async function saveCloudFavs(favs) {
   } catch (e) { console.warn('Could not save favorites:', e); }
 }
 
+/* ===================== PROFILE SYSTEM ===================== */
+const OWNER_UID  = 'zEy6TO5ligf2um4rssIZs9C9X7f2';
+const OWNER_USERNAME = 'nxtcoreee3';
+
+export async function getProfile(uid) {
+  try {
+    const snap = await getDoc(doc(db, 'profiles', uid));
+    return snap.exists() ? snap.data() : null;
+  } catch { return null; }
+}
+
+export async function getProfileByUsername(username) {
+  try {
+    const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const q = query(collection(db, 'profiles'), where('username', '==', username.toLowerCase()));
+    const snap = await getDocs(q);
+    if (snap.empty) return null;
+    return { uid: snap.docs[0].id, ...snap.docs[0].data() };
+  } catch { return null; }
+}
+
+export async function searchProfiles(term) {
+  try {
+    const { collection, query, where, orderBy, limit, getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const t = term.toLowerCase();
+    const q = query(collection(db, 'profiles'), where('username', '>=', t), where('username', '<=', t + '\uf8ff'), limit(10));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ uid: d.id, ...d.data() }));
+  } catch { return []; }
+}
+
+export async function isUsernameTaken(username) {
+  const p = await getProfileByUsername(username);
+  return p !== null;
+}
+
+export async function createProfile({ uid, username, displayName, bio, isPrivate, avatarURL }) {
+  const { collection, query, where, getDocs, serverTimestamp: fsTimestamp } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+  const badges = uid === OWNER_UID ? ['owner', 'admin'] : [];
+  const profileData = {
+    uid,
+    username: username.toLowerCase(),
+    displayName: displayName || username,
+    bio: bio || '',
+    isPrivate: isPrivate || false,
+    avatarURL: avatarURL || '',
+    badges,
+    followers: uid === OWNER_UID ? [] : [OWNER_UID],
+    following: uid === OWNER_UID ? [] : [OWNER_UID],
+    joinedAt: new Date().toISOString(),
+    isBanned: false,
+  };
+  await setDoc(doc(db, 'profiles', uid), profileData);
+
+  // Auto-follow: add this user to owner's followers, and owner to their following
+  if (uid !== OWNER_UID) {
+    const ownerRef = doc(db, 'profiles', OWNER_UID);
+    const ownerSnap = await getDoc(ownerRef);
+    if (ownerSnap.exists()) {
+      const ownerFollowers = ownerSnap.data().followers || [];
+      if (!ownerFollowers.includes(uid)) {
+        await updateDoc(ownerRef, { followers: [...ownerFollowers, uid] });
+      }
+    }
+  }
+  return profileData;
+}
+
+export async function updateProfile(uid, updates) {
+  try {
+    await updateDoc(doc(db, 'profiles', uid), updates);
+  } catch (e) { console.warn('Profile update failed:', e); }
+}
+
+export async function followUser(targetUid) {
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous) return;
+  try {
+    const myRef = doc(db, 'profiles', user.uid);
+    const theirRef = doc(db, 'profiles', targetUid);
+    const [mySnap, theirSnap] = await Promise.all([getDoc(myRef), getDoc(theirRef)]);
+    if (!mySnap.exists() || !theirSnap.exists()) return;
+    const myFollowing = mySnap.data().following || [];
+    const theirFollowers = theirSnap.data().followers || [];
+    if (!myFollowing.includes(targetUid)) {
+      await updateDoc(myRef, { following: [...myFollowing, targetUid] });
+      await updateDoc(theirRef, { followers: [...theirFollowers, user.uid] });
+    }
+  } catch (e) { console.warn('Follow failed:', e); }
+}
+
+export async function unfollowUser(targetUid) {
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous) return;
+  try {
+    const myRef = doc(db, 'profiles', user.uid);
+    const theirRef = doc(db, 'profiles', targetUid);
+    const [mySnap, theirSnap] = await Promise.all([getDoc(myRef), getDoc(theirRef)]);
+    if (!mySnap.exists() || !theirSnap.exists()) return;
+    await updateDoc(myRef, { following: (mySnap.data().following || []).filter(id => id !== targetUid) });
+    await updateDoc(theirRef, { followers: (theirSnap.data().followers || []).filter(id => id !== user.uid) });
+  } catch (e) { console.warn('Unfollow failed:', e); }
+}
+
+export async function banUser(targetUid, reason = '') {
+  const user = auth.currentUser;
+  if (!user || user.uid !== OWNER_UID) return;
+  await updateDoc(doc(db, 'profiles', targetUid), { isBanned: true, banReason: reason, bannedAt: new Date().toISOString() });
+}
+
+export async function unbanUser(targetUid) {
+  const user = auth.currentUser;
+  if (!user || user.uid !== OWNER_UID) return;
+  await updateDoc(doc(db, 'profiles', targetUid), { isBanned: false, banReason: '', bannedAt: null });
+}
+
+export function renderBadges(badges = []) {
+  return badges.map(b => {
+    if (b === 'owner') return `<span style="display:inline-flex;align-items:center;gap:3px;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:0.3px;">👑 Owner</span>`;
+    if (b === 'admin') return `<span style="display:inline-flex;align-items:center;gap:3px;background:#3a7dff;color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;letter-spacing:0.3px;">⚡ Admin</span>`;
+    return '';
+  }).join(' ');
+}
+
+/* ===================== PROFILE SETUP MODAL ===================== */
+export function initProfileSetup(onComplete) {
+  // Called after sign-in — checks if profile exists, if not shows setup modal
+  onAuthStateChanged(auth, async (user) => {
+    if (!user || user.isAnonymous) return;
+    const profile = await getProfile(user.uid);
+    if (profile) { if (onComplete) onComplete(profile); return; }
+
+    // No profile yet — show setup modal
+    const modal = document.createElement('div');
+    modal.id = 'profile-setup-modal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:600;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);backdrop-filter:blur(6px);';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:20px;padding:32px;width:100%;max-width:420px;box-shadow:0 30px 80px rgba(0,0,0,0.2);position:relative;max-height:90vh;overflow-y:auto;">
+        <button id="psetup-skip" style="position:absolute;top:14px;right:14px;background:none;border:none;font-size:18px;cursor:pointer;color:#9ca3af;" title="Skip for now">✕</button>
+        <div style="text-align:center;margin-bottom:24px;">
+          <div style="font-size:40px;margin-bottom:8px;">👤</div>
+          <h2 style="font-family:'Bebas Neue',sans-serif;font-size:30px;margin:0 0 6px;color:#111827;">Create your Profile</h2>
+          <p style="color:#6b7280;font-size:13px;margin:0;">Set up your public Flux profile so others can follow you.</p>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Username <span style="color:#ef4444;">*</span></label>
+            <div style="position:relative;">
+              <span style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#9ca3af;font-size:14px;">@</span>
+              <input id="psetup-username" type="text" placeholder="yourname" maxlength="20"
+                style="width:100%;padding:10px 12px 10px 28px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:14px;outline:none;box-sizing:border-box;">
+            </div>
+            <div id="psetup-username-msg" style="font-size:11px;margin-top:4px;display:none;"></div>
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Display Name</label>
+            <input id="psetup-displayname" type="text" placeholder="${user.displayName || 'Your Name'}" maxlength="30"
+              style="width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:14px;outline:none;box-sizing:border-box;">
+          </div>
+
+          <div>
+            <label style="font-size:11px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">Bio</label>
+            <textarea id="psetup-bio" placeholder="Tell people a bit about yourself..." maxlength="120" rows="2"
+              style="width:100%;padding:10px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:14px;outline:none;box-sizing:border-box;resize:none;font-family:inherit;"></textarea>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:#f9fafb;border-radius:10px;border:1px solid rgba(0,0,0,0.07);">
+            <div>
+              <div style="font-size:13px;font-weight:600;color:#111827;">Private Profile</div>
+              <div style="font-size:11px;color:#6b7280;">Only followers can see your games & bio</div>
+            </div>
+            <label style="position:relative;display:inline-block;width:44px;height:24px;cursor:pointer;">
+              <input type="checkbox" id="psetup-private" style="opacity:0;width:0;height:0;">
+              <span id="psetup-toggle-track" style="position:absolute;inset:0;background:#d1d5db;border-radius:12px;transition:background 0.2s;"></span>
+              <span id="psetup-toggle-thumb" style="position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);"></span>
+            </label>
+          </div>
+
+          <p id="psetup-error" style="color:#ef4444;font-size:12px;margin:0;display:none;text-align:center;"></p>
+
+          <button id="psetup-submit" style="padding:12px;background:#3a7dff;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:15px;">Create Profile</button>
+          <button id="psetup-skip2" style="padding:10px;background:none;border:none;color:#9ca3af;font-size:13px;cursor:pointer;">Skip for now</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Toggle switch behaviour
+    const checkbox = document.getElementById('psetup-private');
+    const track = document.getElementById('psetup-toggle-track');
+    const thumb = document.getElementById('psetup-toggle-thumb');
+    checkbox.addEventListener('change', () => {
+      track.style.background = checkbox.checked ? '#3a7dff' : '#d1d5db';
+      thumb.style.transform = checkbox.checked ? 'translateX(20px)' : 'translateX(0)';
+    });
+
+    // Username availability check
+    let _usernameTimer = null;
+    document.getElementById('psetup-username').addEventListener('input', (e) => {
+      const val = e.target.value.trim().toLowerCase();
+      const msgEl = document.getElementById('psetup-username-msg');
+      clearTimeout(_usernameTimer);
+      // Validate format
+      if (val && !/^[a-z0-9_.]{3,20}$/.test(val)) {
+        msgEl.textContent = 'Only letters, numbers, _ and . allowed (3-20 chars)';
+        msgEl.style.color = '#ef4444'; msgEl.style.display = 'block'; return;
+      }
+      if (!val) { msgEl.style.display = 'none'; return; }
+      msgEl.textContent = 'Checking...'; msgEl.style.color = '#9ca3af'; msgEl.style.display = 'block';
+      _usernameTimer = setTimeout(async () => {
+        const taken = await isUsernameTaken(val);
+        if (taken) { msgEl.textContent = '✗ Username taken'; msgEl.style.color = '#ef4444'; }
+        else { msgEl.textContent = '✓ Available'; msgEl.style.color = '#22c55e'; }
+      }, 500);
+    });
+
+    const closeModal = () => modal.remove();
+    document.getElementById('psetup-skip').addEventListener('click', closeModal);
+    document.getElementById('psetup-skip2').addEventListener('click', closeModal);
+
+    document.getElementById('psetup-submit').addEventListener('click', async () => {
+      const username = document.getElementById('psetup-username').value.trim().toLowerCase();
+      const displayName = document.getElementById('psetup-displayname').value.trim() || user.displayName || username;
+      const bio = document.getElementById('psetup-bio').value.trim();
+      const isPrivate = document.getElementById('psetup-private').checked;
+      const errEl = document.getElementById('psetup-error');
+      const btn = document.getElementById('psetup-submit');
+
+      errEl.style.display = 'none';
+      if (!username) { errEl.textContent = 'Username is required.'; errEl.style.display = 'block'; return; }
+      if (!/^[a-z0-9_.]{3,20}$/.test(username)) { errEl.textContent = 'Invalid username format.'; errEl.style.display = 'block'; return; }
+
+      btn.textContent = 'Creating...'; btn.disabled = true;
+
+      const taken = await isUsernameTaken(username);
+      if (taken) { errEl.textContent = 'That username is already taken.'; errEl.style.display = 'block'; btn.textContent = 'Create Profile'; btn.disabled = false; return; }
+
+      const profile = await createProfile({
+        uid: user.uid,
+        username,
+        displayName,
+        bio,
+        isPrivate,
+        avatarURL: user.photoURL || '',
+      });
+
+      closeModal();
+      if (onComplete) onComplete(profile);
+    });
+  });
+}
+
 /* ===================== AUTH UI ===================== */
 export function initAuthUI(onUserChange) {
   const rightActions = document.querySelector('.right-actions');
@@ -342,6 +596,12 @@ export function initAuthUI(onUserChange) {
       <button id="change-password-btn" style="width:100%;padding:12px 16px;background:none;border:none;border-bottom:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:#111827;display:flex;align-items:center;gap:10px;">
         <span>🔑</span> Change Password
       </button>
+      <a id="view-profile-btn" href="profile.html" style="display:none;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:#111827;text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
+        <span>👤</span> My Profile
+      </a>
+      <a href="social.html" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:#111827;text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
+        <span>💬</span> Social & Chat
+      </a>
       <a href="info.html" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:#111827;text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
         <span>🔒</span> Privacy Policy
       </a>
@@ -673,6 +933,24 @@ export function initAuthUI(onUserChange) {
 
       // Show mod panel button only for admin
       if (modBtn) modBtn.style.display = user.uid === ADMIN_UID ? 'flex' : 'none';
+
+      if (!user.isAnonymous) {
+        // Check for profile and trigger setup if missing
+        const profile = await getProfile(user.uid);
+        if (!profile) {
+          initProfileSetup((p) => {
+            // Update display name in nav if profile created
+            if (p && name) name.textContent = p.displayName || p.username;
+          });
+        } else {
+          // Use profile display name in nav
+          if (name) name.textContent = profile.displayName || profile.username || user.displayName || user.email;
+          // Show profile link in dropdown
+          const profileLinkEl = document.getElementById('view-profile-btn');
+          if (profileLinkEl) profileLinkEl.style.display = 'flex';
+          if (profileLinkEl) profileLinkEl.href = `profile.html?user=${profile.username}`;
+        }
+      }
 
       if (user.isAnonymous) {
         name.textContent = 'Guest';

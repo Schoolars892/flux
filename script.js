@@ -314,7 +314,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initAuthUI(async (user) => {
     await refreshFavsCache();
-    if (user && !user.isAnonymous) showToast(`Welcome back! 👋`, 'success');
+    if (user && !user.isAnonymous && !sessionStorage.getItem('flux_welcomed')) {
+      showToast(`Welcome back! 👋`, 'success');
+      sessionStorage.setItem('flux_welcomed', '1');
+    }
   });
 });
 

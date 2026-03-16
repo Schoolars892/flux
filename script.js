@@ -1,45 +1,53 @@
 /* script.js — Flux
    Features: game rendering, play modal, search/sort,
-   favorites (cloud+local), dark mode, toasts, recently played, new badge, stats button
+   favorites (cloud+local), dark mode, toasts, recently played,
+   auto NEW badge (last 3 days, max 3), stats button, game progress disclaimer
 */
 
 import { initAuthUI, loadCloudFavs, saveCloudFavs, initPresence, initStatsButton } from './firebase-auth.js';
 
+/* ===================== GAMES ===================== */
+// addedAt: timestamp in ms when the game was added to Flux
 const GAMES = [
   {
     id: 'drive-mad',
     title: 'Drive Mad',
     thumb: 'assets/Drive-Mad.png',
     url: 'https://nxtcoreee3.github.io/Drive-Mad/',
-    desc: 'High speed driving challenge'
+    desc: 'High speed driving challenge',
+    addedAt: 1704067200000 // Jan 1 2024
   },
   {
     id: 'stickman-hook',
     title: 'Stickman Hook',
     thumb: 'assets/Stickman-Hook.png',
     url: 'https://nxtcoreee3.github.io/Stickman-Hook/',
-    desc: 'Swing through levels with perfect timing'
+    desc: 'Swing through levels with perfect timing',
+    addedAt: 1704067200000
   },
   {
     id: 'geometry-dash-lite',
     title: 'Geometry Dash Lite',
     thumb: 'assets/Geometry-Dash-Lite.png',
     url: 'https://nxtcoreee3.github.io/Geometry-Dash-Lite/',
-    desc: 'Rhythm-based platformer — lite'
+    desc: 'Rhythm-based platformer — lite',
+    addedAt: 1704067200000
   },
   {
     id: 'paper-io',
     title: 'Paper.io',
     thumb: 'assets/Paper-io.png',
     url: 'https://nxtcoreee3.github.io/Paper-io/',
-    desc: 'Conquer territory and outmaneuver rivals'
+    desc: 'Conquer territory and outmaneuver rivals',
+    addedAt: 1704067200000
   },
   {
     id: 'cookie-clicker',
     title: 'Cookie Clicker',
     thumb: 'assets/Cookie-Clicker.png',
     url: 'https://nxtcoreee3.github.io/Cookie-Clicker/',
-    desc: 'Click cookies, build an empire'
+    desc: 'Click cookies, build an empire',
+    addedAt: 1704067200000
   },
   {
     id: 'monkey-mart',
@@ -47,9 +55,26 @@ const GAMES = [
     thumb: 'assets/Monkey-Mart.png',
     url: 'https://nxtcoreee3.github.io/Monkey-Mart/',
     desc: 'Run your own monkey supermarket',
-    isNew: true
+    addedAt: Date.now() // added now — will show NEW for 3 days
   }
 ];
+
+/* ===================== AUTO NEW BADGE ===================== */
+const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+const MAX_NEW_BADGES = 3;
+
+function computeNewBadges() {
+  const now = Date.now();
+  // find games added in last 3 days, sorted newest first
+  const recent = GAMES
+    .filter(g => g.addedAt && (now - g.addedAt) <= THREE_DAYS_MS)
+    .sort((a, b) => b.addedAt - a.addedAt)
+    .slice(0, MAX_NEW_BADGES)
+    .map(g => g.id);
+  return new Set(recent);
+}
+
+const NEW_GAME_IDS = computeNewBadges();
 
 // expose game count globally for stats button
 window._FLUX_GAME_COUNT = GAMES.length;
@@ -190,12 +215,13 @@ async function toggleFav(id) {
 
 /* ===================== CARD ===================== */
 function createCard(game) {
+  const isNew = NEW_GAME_IDS.has(game.id);
   const div = document.createElement('article');
   div.className = 'card';
   div.setAttribute('data-id', game.id);
 
   div.innerHTML = `
-    ${game.isNew ? '<span class="new-badge">NEW</span>' : ''}
+    ${isNew ? '<span class="new-badge">NEW</span>' : ''}
     <img class="thumb" src="${game.thumb}" alt="${game.title} thumbnail" loading="lazy">
     <div class="card-body">
       <h3 class="title">${game.title}</h3>
@@ -313,6 +339,16 @@ function openPlayModal(url, title) {
   if (modalTitle) modalTitle.textContent = title;
   modal.setAttribute('aria-hidden', 'false');
   if (openTabBtn) openTabBtn.onclick = () => window.open(url, '_blank', 'noopener');
+
+  // inject disclaimer if not already there
+  let disclaimer = modal.querySelector('.progress-disclaimer');
+  if (!disclaimer) {
+    disclaimer = document.createElement('div');
+    disclaimer.className = 'progress-disclaimer';
+    disclaimer.style.cssText = 'padding:6px 12px;background:rgba(245,158,11,0.1);border-top:1px solid rgba(245,158,11,0.2);font-size:11px;color:#92400e;text-align:center;flex-shrink:0;';
+    disclaimer.textContent = '⚠️ Game progress may not be saved — this depends on the individual game.';
+    modal.querySelector('.modal-body')?.before(disclaimer);
+  }
 
   const closeModal = () => { modal.setAttribute('aria-hidden','true'); if(iframe) iframe.src='about:blank'; };
   if (closeBtn) closeBtn.onclick = closeModal;

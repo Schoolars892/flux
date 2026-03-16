@@ -3,7 +3,7 @@
    favorites (cloud+local), dark mode, toasts, recently played, new badge, stats button
 */
 
-import { initAuthUI, loadCloudFavs, saveCloudFavs, initPresence, initStatsButton, trackDailyVisitor } from './firebase-auth.js';
+import { initAuthUI, loadCloudFavs, saveCloudFavs, initPresence, initStatsButton, trackDailyVisitor, initServerStatus } from './firebase-auth.js';
 
 const GAMES = [
   {
@@ -296,6 +296,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initDarkMode();
   initStatsButton();
   initPresence();
+  initServerStatus();
   trackDailyVisitor();
 
   if (document.getElementById('game-grid') || document.getElementById('games-grid')) {

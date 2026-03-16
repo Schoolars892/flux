@@ -993,7 +993,7 @@ export function initChaos() {
     if (_activeEffects.has('colour')) {
       const col = COLOURS[Math.floor(Math.random() * COLOURS.length)];
       getSheet().insertRule(`:root { --accent: ${col} !important; --primary: ${col} !important; }`, 0);
-      getSheet().insertRule(`a, button, .play-btn { background-color: ${col} !important; border-color: ${col} !important; }`, 1);
+      getSheet().insertRule(`.play-btn { background-color: ${col} !important; border-color: ${col} !important; }`, 1);
     }
 
     if (_activeEffects.has('crazytext')) {
@@ -1039,8 +1039,7 @@ export function initChaos() {
     // Force iframe — hide all "Open" and "Open in new tab" buttons
     if (_activeEffects.has('forceiframe')) {
       getSheet().insertRule(`.open-btn { display: none !important; }`, 0);
-      getSheet().insertRule(`[aria-label="Open in new tab"], #open-tab-btn, .tool-btn[title*="tab"], .tool-btn[aria-label*="tab"] { display: none !important; }`, 0);
-      // Also disable open-btn clicks programmatically
+      getSheet().insertRule(`#open-tab-btn { display: none !important; }`, 0);
       document.querySelectorAll('.open-btn').forEach(btn => { btn.style.display = 'none'; });
     } else if (prev.has('forceiframe')) {
       document.querySelectorAll('.open-btn').forEach(btn => { btn.style.display = ''; });

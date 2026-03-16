@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Info — Flux</title>
+  <title>Privacy Policy — Flux</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
 </head>
@@ -18,6 +18,7 @@
       <ul id="main-nav" class="nav-list">
         <li><a href="index.html">Home</a></li>
         <li><a href="games.html">Games</a></li>
+        <li><a href="social.html">Social</a></li>
         <li><a href="info.html" class="active">Info</a></li>
         <li><a href="credits.html">Credits</a></li>
         <li><a href="donate.html" class="accent">Donate</a></li>
@@ -28,18 +29,98 @@
     </div>
   </header>
 
-  <main class="info-page">
-    <section class="section glass">
-      <h2>How Flux Works</h2>
-      <p>Flux is a curated portal of links to web games. Each game is hosted on its own public page (in this project's case: GitHub Pages). Flux acts as a directory + in-browser launcher — it does not host the games itself.</p>
-      <h3>Embedding & Fallbacks</h3>
-      <p>Flux attempts to embed games in a modal (iframe) for a seamless experience. Some sites prevent embedding for security (via headers). When that happens Flux will show a clear message and provide a one-click fallback that opens the game in a new tab.</p>
-      <h3>Respect Network Rules</h3>
-      <p>Flux links to publicly available pages. It is important to respect the usage policies of your network or institution. If a page is blocked by a network administrator, follow the rules provided by that administrator.</p>
-      <h3>Privacy & Safety</h3>
-      <p>Flux does not collect personal data. Game pages themselves may collect analytics or use cookies — review each game's page if you have privacy concerns.</p>
-      <h3>Contributing</h3>
-      <p>To add a new game: add a thumbnail to <code>/assets</code> and a new card in the games list. The UI is data-driven in <code>script.js</code> so you can add entries there to populate the site automatically.</p>
+  <main style="max-width:720px;margin:0 auto;padding:32px 16px;">
+
+    <!-- Accept banner (shown when redirected from policy gate) -->
+    <div id="policy-accept-banner" style="display:none;background:var(--accent,#3a7dff);color:white;border-radius:16px;padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;">
+      <div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:20px;margin-bottom:4px;">Please accept our Privacy Policy</div>
+        <div style="font-size:13px;opacity:0.9;">Read the policy below, then click Accept to continue using Flux.</div>
+      </div>
+      <button id="policy-accept-btn" style="padding:10px 24px;background:white;color:var(--accent,#3a7dff);border:none;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap;flex-shrink:0;">✅ I Accept</button>
+    </div>
+
+    <section class="section glass" style="margin-bottom:20px;">
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:36px;margin:0 0 4px;">Privacy Policy</h2>
+      <p style="color:var(--muted);font-size:13px;margin:0 0 24px;">Last updated: March 2026 · Applies to Flux and all its features</p>
+
+      <h3>1. Who We Are</h3>
+      <p>Flux is a browser game portal created and operated by <strong>nxtcoreee3</strong>. Flux is hosted on GitHub Pages at <strong>nxtcoreee3.github.io/Flux</strong>. If you have any questions about this policy you can reach us via <a href="https://github.com/nxtcoreee3" target="_blank" rel="noopener">GitHub</a>.</p>
+
+      <h3>2. What Data We Collect</h3>
+      <p>When you create a Flux profile, we collect and store the following in our database (Firebase Firestore):</p>
+      <ul style="color:var(--text);font-size:14px;line-height:1.8;padding-left:20px;">
+        <li>Your chosen <strong>username</strong> and <strong>display name</strong></li>
+        <li>Your <strong>profile bio</strong> (if provided)</li>
+        <li>Your <strong>profile picture URL</strong> (from Google if you sign in with Google)</li>
+        <li>Your <strong>favourited games</strong> and <strong>recently played games</strong></li>
+        <li>Your <strong>followers and following</strong> lists (user IDs)</li>
+        <li>Your <strong>join date</strong> and <strong>privacy setting</strong> (public or private profile)</li>
+        <li>Any <strong>roles or badges</strong> assigned to your account by admins</li>
+        <li>Your <strong>chat messages</strong> sent in the Global Chat</li>
+      </ul>
+
+      <h3>3. Authentication Data (Firebase)</h3>
+      <p>Flux uses <strong>Firebase Authentication</strong> by Google to handle sign-in. When you create an account, Firebase collects:</p>
+      <ul style="color:var(--text);font-size:14px;line-height:1.8;padding-left:20px;">
+        <li>Your <strong>email address</strong> (if using email/password sign-in)</li>
+        <li>Your <strong>Google account info</strong> (if using Google sign-in: name, email, profile picture)</li>
+        <li>Your <strong>IP address</strong> and basic device/browser information for security purposes</li>
+        <li><strong>Session tokens</strong> stored in your browser to keep you signed in</li>
+      </ul>
+      <p>Firebase's own privacy policy applies to this data: <a href="https://firebase.google.com/support/privacy" target="_blank" rel="noopener" style="color:var(--accent,#3a7dff);">firebase.google.com/support/privacy</a></p>
+
+      <h3>4. Cookies & Local Storage</h3>
+      <p>Flux uses <strong>cookies and browser local storage</strong> to:</p>
+      <ul style="color:var(--text);font-size:14px;line-height:1.8;padding-left:20px;">
+        <li>Keep you signed in between visits</li>
+        <li>Remember your dark/light mode preference</li>
+        <li>Store your recently played games locally</li>
+        <li>Remember that you have accepted this privacy policy</li>
+        <li>Remember that you have seen certain banners and notifications</li>
+      </ul>
+      <p>These are <strong>essential cookies</strong> — Flux cannot function without them. By using Flux you consent to their use.</p>
+
+      <h3>5. How We Use Your Data</h3>
+      <p>Your data is used solely to provide the Flux experience:</p>
+      <ul style="color:var(--text);font-size:14px;line-height:1.8;padding-left:20px;">
+        <li>Displaying your public profile to other users</li>
+        <li>Enabling the follow system and social features</li>
+        <li>Showing your favourited and recently played games on your profile</li>
+        <li>Displaying your messages in the Global Chat</li>
+        <li>Tracking daily visitor counts and online presence (anonymous)</li>
+      </ul>
+      <p>We <strong>do not</strong> sell your data, share it with advertisers, or use it for any commercial purpose.</p>
+
+      <h3>6. Public vs Private Profiles</h3>
+      <p>By default your profile is <strong>public</strong> — this means your username, display name, bio, favourited games, recently played games, follower count, and badges are visible to anyone. You can switch to a <strong>private profile</strong> in your profile settings, which hides your games and bio from non-followers.</p>
+      <p>Your <strong>chat messages</strong> are always public and visible to all users of the Global Chat.</p>
+
+      <h3>7. Data Retention & Deletion</h3>
+      <p>Your profile data is stored in Firebase Firestore for as long as your account exists. You may request deletion of your account and all associated profile data at any time by contacting us via GitHub. Chat messages may be deleted by you or by an admin at any time.</p>
+
+      <h3>8. Children's Privacy</h3>
+      <p>Flux is not directed at children under 13. We do not knowingly collect personal information from children under 13. If you believe a child has provided us with personal data, please contact us so we can remove it.</p>
+
+      <h3>9. Your Rights (GDPR)</h3>
+      <p>If you are located in the European Economic Area (including Sweden), you have the following rights under GDPR:</p>
+      <ul style="color:var(--text);font-size:14px;line-height:1.8;padding-left:20px;">
+        <li><strong>Right to access</strong> — you can view all your profile data on your profile page</li>
+        <li><strong>Right to rectification</strong> — you can edit your profile at any time</li>
+        <li><strong>Right to erasure</strong> — you can request full account deletion</li>
+        <li><strong>Right to object</strong> — you can opt out of social features by not creating a profile</li>
+      </ul>
+
+      <h3>10. Changes to This Policy</h3>
+      <p>We may update this policy from time to time. If we make significant changes, existing users will be notified and asked to re-accept. The latest version is always available on this page.</p>
+
+      <h3>11. How Flux Works</h3>
+      <p>Flux is a curated portal of links to web games. Each game is hosted on its own public GitHub Pages site. Flux acts as a directory and in-browser launcher — it does not host the games itself. Some sites prevent embedding via iframes for security reasons — when that happens Flux shows a fallback link to open the game in a new tab.</p>
+
+      <div style="margin-top:32px;padding:20px;background:var(--bg);border-radius:12px;border:1px solid var(--glass-border);text-align:center;">
+        <p style="font-size:13px;color:var(--muted);margin:0 0 14px;">Have questions about your data or this policy?</p>
+        <a href="https://github.com/nxtcoreee3" target="_blank" rel="noopener" style="display:inline-block;padding:10px 24px;background:var(--accent,#3a7dff);color:white;border-radius:10px;font-weight:700;font-size:14px;text-decoration:none;">Contact us on GitHub</a>
+      </div>
     </section>
   </main>
 
@@ -54,5 +135,28 @@
   </footer>
 
   <script type="module" src="script.js"></script>
+  <script>
+    // Handle accept banner when redirected from policy gate
+    document.addEventListener('DOMContentLoaded', () => {
+      const year = document.getElementById('year3');
+      if (year) year.textContent = new Date().getFullYear();
+
+      const params = new URLSearchParams(location.search);
+      if (params.get('accept') === '1') {
+        const banner = document.getElementById('policy-accept-banner');
+        if (banner) banner.style.display = 'flex';
+        // Scroll to top
+        window.scrollTo(0, 0);
+      }
+
+      document.getElementById('policy-accept-btn')?.addEventListener('click', () => {
+        localStorage.setItem('flux_policy_accepted', '1');
+        localStorage.setItem('flux_cookie_consent', 'accepted');
+        // Go back to where they came from
+        const returnTo = params.get('return') || 'index.html';
+        window.location.href = returnTo;
+      });
+    });
+  </script>
 </body>
 </html>

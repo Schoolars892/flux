@@ -657,6 +657,8 @@ export function initProfileSetup(onComplete) {
         avatarURL: user.photoURL || '',
       });
 
+      localStorage.setItem('flux_policy_accepted', '1');
+      localStorage.setItem('flux_cookie_consent', 'accepted');
       closeModal();
       if (onComplete) onComplete(profile);
     });
@@ -1522,6 +1524,16 @@ export function initJumpscare() {
 /* ===================== COOKIE CONSENT ===================== */
 export function initCookieConsent() {
   const CONSENT_KEY = 'flux_cookie_consent';
+  const POLICY_KEY = 'flux_policy_accepted';
+
+  // Check if existing logged-in user hasn't accepted policy yet
+  onAuthStateChanged(auth, (user) => {
+    if (user && !user.isAnonymous && localStorage.getItem(POLICY_KEY) !== '1') {
+      showPolicyGate();
+      return;
+    }
+  });
+
   if (localStorage.getItem(CONSENT_KEY) === 'accepted') return;
 
   // Block the page until accepted
@@ -1555,7 +1567,6 @@ export function initCookieConsent() {
   });
 
   document.getElementById('cookie-decline').addEventListener('click', () => {
-    // Replace page with declined message
     overlay.innerHTML = `
       <div style="background:#fff;border-radius:20px;padding:32px;width:100%;max-width:480px;box-shadow:0 30px 80px rgba(0,0,0,0.3);text-align:center;">
         <span style="font-size:48px;display:block;margin-bottom:16px;">🚫</span>
@@ -1570,5 +1581,47 @@ export function initCookieConsent() {
       overlay.remove();
       initCookieConsent();
     });
+  });
+}
+
+function showPolicyGate() {
+  // Don't show if already on info.html
+  if (window.location.pathname.includes('info.html')) return;
+  // Don't show twice
+  if (document.getElementById('policy-gate-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'policy-gate-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:99998;background:rgba(0,0,0,0.75);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:24px;box-sizing:border-box;';
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px;padding:32px;width:100%;max-width:480px;box-shadow:0 30px 80px rgba(0,0,0,0.3);text-align:center;">
+      <span style="font-size:48px;display:block;margin-bottom:16px;">📋</span>
+      <h2 style="font-family:'Bebas Neue',sans-serif;font-size:30px;margin:0 0 12px;color:#111827;">Privacy Policy Update</h2>
+      <p style="font-size:14px;color:#6b7280;line-height:1.6;margin:0 0 8px;">
+        We've updated our Privacy Policy. You need to read and accept it to continue using Flux.
+      </p>
+      <p style="font-size:13px;color:#ef4444;line-height:1.6;margin:0 0 24px;">
+        If you do not accept, your account will need to be deleted — but you're always welcome to create a new one.
+      </p>
+      <a id="policy-gate-read-btn" href="${window.location.pathname.includes('github.io') ? '/Flux/' : '/'}info.html?accept=1&return=${encodeURIComponent(window.location.href)}"
+        style="display:block;padding:13px;background:#3a7dff;color:white;border-radius:10px;font-weight:700;font-size:15px;text-decoration:none;margin-bottom:10px;">
+        📖 Read & Accept Privacy Policy
+      </a>
+      <button id="policy-gate-delete-btn" style="width:100%;padding:11px;background:transparent;border:1px solid rgba(239,68,68,0.3);border-radius:10px;font-weight:600;font-size:13px;color:#ef4444;cursor:pointer;">
+        🗑️ Delete my account instead
+      </button>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('policy-gate-delete-btn').addEventListener('click', async () => {
+    if (!confirm('Are you sure? This will sign you out. To fully delete your account data, contact us on GitHub.')) return;
+    try {
+      await signOut(auth);
+      localStorage.removeItem('flux_policy_accepted');
+      overlay.remove();
+      location.reload();
+    } catch (e) { console.warn('Sign out failed:', e); }
   });
 }

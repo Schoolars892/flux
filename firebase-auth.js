@@ -473,7 +473,17 @@ export function initAuthUI(onUserChange) {
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <button id="mod-shutdown-btn" style="padding:11px;background:#ef4444;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">🔴 Shut Down Server</button>
-        <button id="mod-crash-btn" style="padding:11px;background:#f59e0b;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">💥 Fake Server Crash</button>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <select id="mod-crash-reason" style="padding:10px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;color:#111827;background:#fff;outline:none;cursor:pointer;">
+            <option value="The server has crashed due to high traffic. We're working on a fix.">🚦 Too much traffic</option>
+            <option value="The database has overloaded and caused a crash. Please try again soon.">🗄️ Database overload</option>
+            <option value="A memory leak has caused the server to crash unexpectedly.">💾 Memory leak</option>
+            <option value="An unexpected internal error has caused a server crash. Our team is investigating.">⚠️ Unexpected internal error</option>
+            <option value="The server is under a DDoS attack. We're working to restore access.">🛡️ DDoS attack</option>
+            <option value="A failed deployment has taken the server down. Rolling back now.">🚀 Failed deployment</option>
+          </select>
+          <button id="mod-crash-btn" style="padding:11px;background:#f59e0b;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">💥 Fake Server Crash</button>
+        </div>
         <button id="mod-restore-btn" style="padding:11px;background:#22c55e;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">✅ Restore Server</button>
       </div>
       <p id="mod-msg" style="font-size:12px;margin:10px 0 0;text-align:center;display:none;"></p>
@@ -502,8 +512,10 @@ export function initAuthUI(onUserChange) {
 
   document.getElementById('mod-shutdown-btn').addEventListener('click', () =>
     setServerStatus('shutdown', 'The server has been shut down by an admin. Please check back later.'));
-  document.getElementById('mod-crash-btn').addEventListener('click', () =>
-    setServerStatus('crash', 'An unexpected error occurred and the server has crashed. We\'re working on a fix.'));
+  document.getElementById('mod-crash-btn').addEventListener('click', () => {
+    const reason = document.getElementById('mod-crash-reason').value;
+    setServerStatus('crash', reason);
+  });
   document.getElementById('mod-restore-btn').addEventListener('click', () =>
     setServerStatus('online', 'online'));
 
@@ -591,16 +603,23 @@ export function initAuthUI(onUserChange) {
 
 /* ===================== SERVER STATUS ===================== */
 export function initServerStatus() {
-  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ onSnapshot }) => {
-    const statusRef = doc(db, 'stats', 'server');
+  const ADMIN_UID = 'zEy6TO5ligf2um4rssIZs9C9X7f2';
+
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ onSnapshot, setDoc, doc: firestoreDoc }) => {
+    const statusRef = firestoreDoc(db, 'stats', 'server');
     onSnapshot(statusRef, (snap) => {
       if (!snap.exists()) return;
       const { status, message } = snap.data();
+
       if (status === 'online') {
         const existing = document.getElementById('server-status-overlay');
         if (existing) existing.remove();
         return;
       }
+
+      // Don't block the admin — they need to be able to restore
+      const currentUser = auth.currentUser;
+      const isAdmin = currentUser && currentUser.uid === ADMIN_UID;
 
       // Block the page with an overlay
       let overlay = document.getElementById('server-status-overlay');
@@ -624,9 +643,16 @@ export function initServerStatus() {
             at flux.server.js:${Math.floor(Math.random()*900)+100}<br>
             at processNextTick (internal/process/next_tick.js:68)
           </div>` : ''}
+          ${isAdmin ? `<button id="overlay-restore-btn" style="margin-top:20px;padding:10px 24px;background:#22c55e;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:14px;">✅ Restore Server</button>` : ''}
           <p style="color:#4b5563;font-size:12px;margin-top:20px;">© Flux ${new Date().getFullYear()}</p>
         </div>
       `;
+
+      if (isAdmin) {
+        document.getElementById('overlay-restore-btn')?.addEventListener('click', async () => {
+          await setDoc(firestoreDoc(db, 'stats', 'server'), { status: 'online', message: 'online', updatedAt: new Date().toISOString() });
+        });
+      }
     });
   });
 }

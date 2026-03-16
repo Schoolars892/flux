@@ -1059,25 +1059,42 @@ export function initChaos() {
 
 /* ===================== JUMPSCARE ===================== */
 export function initJumpscare() {
-  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(({ onSnapshot, getDoc, doc: firestoreDoc }) => {
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({ onSnapshot, getDoc, doc: firestoreDoc }) => {
     let _lastJumpscareId = null;
+    const jumpscareRef = firestoreDoc(db, 'stats', 'jumpscare');
+
+    // Pre-load the current ID so we don't trigger on page load
+    try {
+      const initial = await getDoc(jumpscareRef);
+      if (initial.exists()) _lastJumpscareId = initial.data().id || null;
+    } catch {}
 
     function triggerJumpscare() {
-      // Don't jumpscare if overlay or banner already showing (admin)
-      if (document.getElementById('server-status-overlay') || document.getElementById('server-status-banner')) return;
+      // Admin sees a success toast instead
+      if (auth.currentUser?.uid === 'zEy6TO5ligf2um4rssIZs9C9X7f2') {
+        let container = document.getElementById('toast-container');
+        if (!container) { container = document.createElement('div'); container.id = 'toast-container'; container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;'; document.body.appendChild(container); }
+        const t = document.createElement('div');
+        t.style.cssText = 'background:#111827;border-radius:12px;padding:12px 16px;box-shadow:0 8px 30px rgba(0,0,0,0.3);border-left:4px solid #22c55e;font-size:13px;font-weight:600;color:#22c55e;pointer-events:all;opacity:0;transform:translateY(8px);transition:all 0.25s ease;';
+        t.textContent = '✅ Jumpscare deployed to all users!';
+        container.appendChild(t);
+        requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+        setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; setTimeout(() => t.remove(), 250); }, 3000);
+        return;
+      }
+
+      if (document.getElementById('server-status-overlay')) return;
 
       const overlay = document.createElement('div');
       overlay.id = 'jumpscare-overlay';
       overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;display:flex;align-items:center;justify-content:center;cursor:pointer;';
       overlay.innerHTML = `<img src="assets/jumpscare.png" alt="" style="max-width:100vw;max-height:100vh;object-fit:contain;animation:jumpscare-pop 0.1s ease-out;">`;
 
-      // Inject keyframe
       const style = document.createElement('style');
       style.textContent = `@keyframes jumpscare-pop { 0%{transform:scale(0.5);opacity:0} 100%{transform:scale(1);opacity:1} }`;
       document.head.appendChild(style);
       document.body.appendChild(overlay);
 
-      // Try to play a scream sound if browser allows
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         const osc = ctx.createOscillator();
@@ -1090,13 +1107,10 @@ export function initJumpscare() {
         osc.start(); osc.stop(ctx.currentTime + 0.4);
       } catch {}
 
-      // Auto-dismiss after 2.5s or on click
       const dismiss = () => { overlay.remove(); style.remove(); };
       overlay.addEventListener('click', dismiss);
       setTimeout(dismiss, 2500);
     }
-
-    const jumpscareRef = firestoreDoc(db, 'stats', 'jumpscare');
 
     onSnapshot(jumpscareRef, (snap) => {
       if (!snap.exists()) return;
@@ -1106,7 +1120,7 @@ export function initJumpscare() {
       triggerJumpscare();
     });
 
-    // Fallback poll
+    // Fallback poll every 1.5s for mobile
     setInterval(async () => {
       try {
         const snap = await getDoc(jumpscareRef);
@@ -1116,6 +1130,6 @@ export function initJumpscare() {
         _lastJumpscareId = id;
         triggerJumpscare();
       } catch {}
-    }, 3000);
+    }, 1500);
   });
 }

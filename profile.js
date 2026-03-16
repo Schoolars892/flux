@@ -75,15 +75,16 @@ async function loadProfilePage() {
 
   // Wait for auth to resolve before rendering
   onAuthStateChanged(auth, async (currentUser) => {
-    const isOwn = currentUser && currentUser.uid === profile.uid;
+    // Re-fetch profile after auth so follower state is always fresh
+    const freshProfile = await getProfileByUsername(usernameParam) || profile;
+    const isOwn = currentUser && currentUser.uid === freshProfile.uid;
     const isAdmin = currentUser && currentUser.uid === OWNER_UID;
-    const isFollowing = currentUser && (profile.followers || []).includes(currentUser.uid);
+    const isFollowing = currentUser && (freshProfile.followers || []).includes(currentUser.uid);
 
-    // Check if private and not following
-    const canSeeContent = !profile.isPrivate || isOwn || isFollowing || isAdmin;
+    const canSeeContent = !freshProfile.isPrivate || isOwn || isFollowing || isAdmin;
 
-    root.innerHTML = renderProfile(profile, { isOwn, isAdmin, isFollowing, canSeeContent, currentUser });
-    bindEvents(profile, { isOwn, isAdmin, isFollowing, currentUser });
+    root.innerHTML = renderProfile(freshProfile, { isOwn, isAdmin, isFollowing, canSeeContent, currentUser });
+    bindEvents(freshProfile, { isOwn, isAdmin, isFollowing, currentUser });
   });
 }
 

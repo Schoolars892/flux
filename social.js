@@ -110,16 +110,20 @@ function startChatListener(currentUser) {
       return;
     }
 
-    snap.docs.forEach(docSnap => {
-      const msg = { id: docSnap.id, ...docSnap.data() };
-      container.appendChild(renderMessage(msg, currentUser));
-    });
+    // Render all messages (async for live profile fetch)
+    const renders = await Promise.all(
+      snap.docs.map(docSnap => {
+        const msg = { id: docSnap.id, ...docSnap.data() };
+        return renderMessage(msg, currentUser);
+      })
+    );
+    renders.forEach(el => container.appendChild(el));
 
     if (wasAtBottom) container.scrollTop = container.scrollHeight;
   });
 }
 
-function renderMessage(msg, currentUser) {
+async function renderMessage(msg, currentUser) {
   const isAdmin = currentUser?.uid === OWNER_UID;
   const isOwn = currentUser?.uid === msg.uid;
   const time = msg.sentAt?.toDate
@@ -130,7 +134,11 @@ function renderMessage(msg, currentUser) {
     ? `<img class="chat-msg-avatar" src="${msg.avatarURL}" alt="">`
     : `<div class="chat-msg-avatar-placeholder">${(msg.displayName || msg.username || '?')[0].toUpperCase()}</div>`;
 
-  const badgesHTML = renderBadges(msg.badges || [], msg.roles || []);
+  // Fetch live profile to get current roles/badges
+  const liveProfile = await getProfile(msg.uid);
+  const badges = liveProfile?.badges || msg.badges || [];
+  const roles = liveProfile?.roles || msg.roles || [];
+  const badgesHTML = renderBadges(badges, roles);
 
   const div = document.createElement('div');
   div.className = 'chat-msg';
@@ -156,19 +164,22 @@ async function sendMessage() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text || !_currentProfile) return;
-  if (_currentProfile.isBanned) return;
 
   input.value = '';
   input.disabled = true;
 
   try {
+    // Always re-fetch profile so roles/badges are current at send time
+    const freshProfile = await getProfile(auth.currentUser.uid) || _currentProfile;
+    if (freshProfile.isBanned) { input.disabled = false; return; }
+
     await addDoc(collection(db, 'chat'), {
       uid: auth.currentUser.uid,
-      username: _currentProfile.username,
-      displayName: _currentProfile.displayName,
-      avatarURL: _currentProfile.avatarURL || '',
-      badges: _currentProfile.badges || [],
-      roles: _currentProfile.roles || [],
+      username: freshProfile.username,
+      displayName: freshProfile.displayName,
+      avatarURL: freshProfile.avatarURL || '',
+      badges: freshProfile.badges || [],
+      roles: freshProfile.roles || [],
       text,
       sentAt: serverTimestamp(),
     });

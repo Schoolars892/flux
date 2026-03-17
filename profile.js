@@ -254,24 +254,22 @@ function renderProfile(profile, { isOwn, isAdmin, isFollowing, canSeeContent, cu
     </style>` : ''}
 
     <div class="profile-card">
-      <!-- Banner -->
-      <div class="profile-banner" style="background:${bannerColor};">
+      <div class="profile-banner">
         <div class="profile-banner-inner" style="background:${bannerColor};">${bannerInner}</div>
-        <!-- Avatar overlapping banner -->
-        <div class="profile-avatar-ring">
-          ${profile.avatarURL
-            ? `<img class="profile-avatar" src="${profile.avatarURL}" alt="${profile.displayName}">`
-            : `<div class="profile-avatar-placeholder">${(profile.displayName || profile.username || '?')[0].toUpperCase()}</div>`}
-        </div>
       </div>
 
       <div class="profile-body">
-        <div class="profile-name-row">
-          <div>
+        <div class="profile-top-row">
+          <div class="profile-avatar-ring">
+            ${profile.avatarURL
+              ? `<img class="profile-avatar" src="${profile.avatarURL}" alt="${profile.displayName}">`
+              : `<div class="profile-avatar-placeholder">${(profile.displayName || profile.username || '?')[0].toUpperCase()}</div>`}
+          </div>
+          <div class="profile-name-block">
             <h1 class="profile-displayname">${profile.displayName || profile.username}</h1>
             <p class="profile-username">@${profile.username} ${profile.isPrivate ? '🔒' : ''} ${profile.isBanned ? '<span class="ban-badge">🚫 Banned</span>' : ''}</p>
           </div>
-          <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;">
+          <div style="display:flex;gap:8px;flex-shrink:0;flex-wrap:wrap;align-self:flex-start;">
             ${followBtn}
             ${editBtn}
           </div>

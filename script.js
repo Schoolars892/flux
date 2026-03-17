@@ -89,8 +89,15 @@ const GAMES = [
   thumb: 'assets/crazy-cars.png',
   url: 'https://nxtcoreee3.github.io/Crazy-Cars/',
   desc: 'Race at high speed while dodging traffic and obstacles.'
-}
-];
+},
+{
+  id: 'crazy-motorcycle',
+  title: 'Crazy Motorcycle',
+  thumb: 'assets/crazy-motorcycle.png',
+  url: 'https://nxtcoreee3.github.io/Crazy-Motorcycle/',
+  desc: 'Ride through obstacle-filled tracks, jump gaps, and reach the finish line.'
+ }
+   ];
 
 // expose game count globally for stats button
 window._FLUX_GAME_COUNT = GAMES.length;

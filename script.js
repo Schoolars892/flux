@@ -341,9 +341,6 @@ document.addEventListener('DOMContentLoaded', () => {
   trackDailyVisitor();
   showSocialBanner();
 
-  if (document.getElementById('game-grid') || document.getElementById('games-grid')) {
-    renderGames(GAMES);
-  }
   if (document.getElementById('quick-search')) {
     document.getElementById('quick-search').addEventListener('input', debounce(applyFilters, 120));
   }
@@ -356,12 +353,14 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Also load favs independently in case initAuthUI callback doesn't fire on page load
+  // Load favs from cloud then render games so stars are correct from the start
   loadCloudFavs().then(cloud => {
     if (cloud !== null) {
       _favsCache = cloud;
       saveLocalFavs(cloud);
-      applyFilters();
+    }
+    if (document.getElementById('game-grid') || document.getElementById('games-grid')) {
+      renderGames(GAMES);
     }
   });
 });

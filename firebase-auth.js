@@ -288,7 +288,10 @@ export async function loadCloudFavs() {
       if (!user || user.isAnonymous) { resolve(null); return; }
       try {
         const snap = await getDoc(doc(db, 'users', user.uid));
-        resolve(snap.exists() ? snap.data().favorites || [] : []);
+        if (!snap.exists()) { resolve(null); return; }
+        const favs = snap.data().favorites;
+        // Only return actual array, return null if field missing so local cache is kept
+        resolve(Array.isArray(favs) ? favs : null);
       } catch { resolve(null); }
     });
   });
@@ -337,7 +340,7 @@ export async function saveCloudFavs(favs) {
       // Also sync to profile so it shows on public profile page
       const profileSnap = await tx.get(profileRef);
       if (profileSnap.exists()) {
-        tx.update(profileRef, { favorites: favs });
+        tx.set(profileRef, { favorites: favs }, { merge: true });
       }
 
       if (diff !== 0) {

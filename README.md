@@ -28,6 +28,8 @@ Flux currently includes the following games:
 	•	8 Ball Classic
 
 	•	Moto X3M3
+
+	•	Table Tennis World Tour	
 	
 	Each game can be launched directly from the website.
 

@@ -104,18 +104,22 @@ function loadConversations() {
   const q = query(
     collection(db, 'conversations'),
     where('members', 'array-contains', _currentUser.uid),
-    where('status', '==', 'accepted'),
     orderBy('lastMessageAt', 'desc')
   );
 
   if (_unsubConvos) _unsubConvos();
   _unsubConvos = onSnapshot(q, async (snap) => {
     list.innerHTML = '';
-    if (snap.empty) {
+    // Filter client-side: show accepted OR group OR convos without status field
+    const docs = snap.docs.filter(d => {
+      const data = d.data();
+      return data.type === 'group' || !data.status || data.status === 'accepted';
+    });
+    if (!docs.length) {
       list.innerHTML = '<div style="padding:20px 16px;color:var(--muted);font-size:13px;text-align:center;">No conversations yet.<br>Start one below!</div>';
       return;
     }
-    for (const d of snap.docs) {
+    for (const d of docs) {
       const item = await buildConvoItem({ id: d.id, ...d.data() });
       list.appendChild(item);
     }

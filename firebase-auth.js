@@ -330,20 +330,22 @@ export async function saveCloudFavs(favs) {
     const statsRef = doc(db, 'stats', 'favourites');
 
     await runTransaction(db, async (tx) => {
+      // ALL reads first
       const prevSnap = await tx.get(userRef);
+      const profileSnap = await tx.get(profileRef);
+      const statsSnap = await tx.get(statsRef);
+
+      // Then all writes
       const prevCount = prevSnap.exists() ? (prevSnap.data().favorites || []).length : 0;
       const diff = favs.length - prevCount;
 
       tx.set(userRef, { favorites: favs }, { merge: true });
 
-      // Also sync to profile so it shows on public profile page
-      const profileSnap = await tx.get(profileRef);
       if (profileSnap.exists()) {
         tx.set(profileRef, { favorites: favs }, { merge: true });
       }
 
       if (diff !== 0) {
-        const statsSnap = await tx.get(statsRef);
         const currentTotal = statsSnap.exists() ? (statsSnap.data().total || 0) : 0;
         tx.set(statsRef, { total: Math.max(0, currentTotal + diff) });
       }

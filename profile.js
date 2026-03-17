@@ -255,13 +255,14 @@ function renderProfile(profile, { isOwn, isAdmin, isFollowing, canSeeContent, cu
 
     <div class="profile-card">
       <!-- Banner -->
-      <div class="profile-banner" style="background:${bannerColor};">${bannerInner}</div>
-
-      <!-- Avatar overlapping banner -->
-      <div class="profile-avatar-ring">
-        ${profile.avatarURL
-          ? `<img class="profile-avatar" src="${profile.avatarURL}" alt="${profile.displayName}">`
-          : `<div class="profile-avatar-placeholder">${(profile.displayName || profile.username || '?')[0].toUpperCase()}</div>`}
+      <div class="profile-banner" style="background:${bannerColor};">
+        <div class="profile-banner-inner" style="background:${bannerColor};">${bannerInner}</div>
+        <!-- Avatar overlapping banner -->
+        <div class="profile-avatar-ring">
+          ${profile.avatarURL
+            ? `<img class="profile-avatar" src="${profile.avatarURL}" alt="${profile.displayName}">`
+            : `<div class="profile-avatar-placeholder">${(profile.displayName || profile.username || '?')[0].toUpperCase()}</div>`}
+        </div>
       </div>
 
       <div class="profile-body">

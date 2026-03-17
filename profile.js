@@ -220,8 +220,15 @@ function renderProfile(profile, { isOwn, isAdmin, isFollowing, canSeeContent, cu
     `;
   }
 
+  const theme = profile.theme || {};
+  const bannerColor = theme.bannerColor || '#3a7dff';
+  const accentColor = theme.accentColor || '';
+  const bannerEmoji = theme.bannerEmoji || '';
+
   return `
-    <div class="profile-hero">
+    ${accentColor ? `<style>.profile-hero { --accent: ${accentColor}; } .btn-follow { background: ${accentColor} !important; } .profile-stat-num { color: ${accentColor} !important; }</style>` : ''}
+    <div class="profile-hero" style="--banner-color:${bannerColor};">
+      <div style="position:absolute;top:0;left:0;right:0;height:80px;background:${bannerColor};opacity:0.9;border-radius:20px 20px 0 0;display:flex;align-items:center;justify-content:center;font-size:32px;">${bannerEmoji}</div>
       <div class="profile-top">
         <div class="profile-avatar-wrap">${avatarHTML}</div>
         <div class="profile-info">
@@ -362,6 +369,11 @@ function showEditModal(profile) {
   const existing = document.getElementById('edit-modal-overlay');
   if (existing) existing.remove();
 
+  const theme = profile.theme || {};
+  const bannerColor = theme.bannerColor || '#3a7dff';
+  const accentColor = theme.accentColor || '#3a7dff';
+  const bannerEmoji = theme.bannerEmoji || '🎮';
+
   const overlay = document.createElement('div');
   overlay.id = 'edit-modal-overlay';
   overlay.className = 'edit-modal-overlay';
@@ -378,6 +390,29 @@ function showEditModal(profile) {
           <label class="field-label">Bio</label>
           <textarea id="edit-bio" class="input-field" rows="3" maxlength="120" style="resize:none;">${profile.bio || ''}</textarea>
         </div>
+
+        <!-- Theme -->
+        <div style="padding:12px;background:var(--bg);border-radius:10px;border:1px solid var(--glass-border);">
+          <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">🎨 Profile Theme</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;">
+            <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+              <label class="field-label" style="margin:0;">Banner</label>
+              <input type="color" id="edit-banner-color" value="${bannerColor}" style="width:40px;height:36px;border:1px solid var(--glass-border);border-radius:8px;cursor:pointer;padding:2px;">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+              <label class="field-label" style="margin:0;">Accent</label>
+              <input type="color" id="edit-accent-color" value="${accentColor}" style="width:40px;height:36px;border:1px solid var(--glass-border);border-radius:8px;cursor:pointer;padding:2px;">
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:100px;">
+              <label class="field-label" style="margin:0;">Banner Emoji</label>
+              <input type="text" id="edit-banner-emoji" value="${bannerEmoji}" maxlength="2"
+                style="padding:8px 10px;border:1px solid var(--glass-border);border-radius:8px;font-size:20px;text-align:center;background:var(--bg);color:var(--text);outline:none;width:100%;box-sizing:border-box;">
+            </div>
+          </div>
+          <!-- Preview -->
+          <div id="theme-preview" style="margin-top:10px;height:40px;border-radius:8px;background:${bannerColor};display:flex;align-items:center;justify-content:center;font-size:22px;transition:background 0.2s;">${bannerEmoji}</div>
+        </div>
+
         <div style="display:flex;align-items:center;justify-content:space-between;padding:12px;background:var(--bg);border-radius:10px;border:1px solid var(--glass-border);">
           <div>
             <div style="font-size:13px;font-weight:600;color:var(--text);">Private Profile</div>
@@ -396,6 +431,17 @@ function showEditModal(profile) {
   `;
   document.body.appendChild(overlay);
 
+  // Live theme preview
+  const updatePreview = () => {
+    const preview = document.getElementById('theme-preview');
+    if (preview) {
+      preview.style.background = document.getElementById('edit-banner-color').value;
+      preview.textContent = document.getElementById('edit-banner-emoji').value || '🎮';
+    }
+  };
+  document.getElementById('edit-banner-color').addEventListener('input', updatePreview);
+  document.getElementById('edit-banner-emoji').addEventListener('input', updatePreview);
+
   // Toggle
   const cb = document.getElementById('edit-private');
   const track = document.getElementById('edit-toggle-track');
@@ -412,13 +458,19 @@ function showEditModal(profile) {
     const displayName = document.getElementById('edit-displayname').value.trim();
     const bio = document.getElementById('edit-bio').value.trim();
     const isPrivate = document.getElementById('edit-private').checked;
+    const bannerColor = document.getElementById('edit-banner-color').value;
+    const accentColor = document.getElementById('edit-accent-color').value;
+    const bannerEmoji = document.getElementById('edit-banner-emoji').value.trim() || '🎮';
     const btn = document.getElementById('edit-save');
     const errEl = document.getElementById('edit-error');
 
     if (!displayName) { errEl.textContent = 'Display name cannot be empty.'; errEl.style.display = 'block'; return; }
     btn.textContent = 'Saving...'; btn.disabled = true;
 
-    await updateProfile(profile.uid, { displayName, bio, isPrivate });
+    await updateProfile(profile.uid, {
+      displayName, bio, isPrivate,
+      theme: { bannerColor, accentColor, bannerEmoji }
+    });
     overlay.remove();
     location.reload();
   });

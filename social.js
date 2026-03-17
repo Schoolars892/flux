@@ -4,7 +4,7 @@ import {
   getProfile, searchProfiles, renderBadges,
   initAuthUI, initServerStatus, initBroadcast,
   initChaos, initJumpscare, initPresence, initCookieConsent,
-  initChatLock
+  initDarkMode, initChatLock
 } from './firebase-auth.js';
 
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -38,6 +38,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (el) el.textContent = new Date().getFullYear();
 
   initCookieConsent();
+  initDarkMode();
   initPresence();
   initServerStatus();
   initBroadcast();

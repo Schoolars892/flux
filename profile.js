@@ -29,14 +29,19 @@ const auth = getAuth(app);
 const OWNER_UID = 'zEy6TO5ligf2um4rssIZs9C9X7f2';
 
 const GAMES_MAP = {
-  'drive-mad':        { title: 'Drive Mad',         thumb: 'assets/Drive-Mad.png',         url: 'https://nxtcoreee3.github.io/Drive-Mad/' },
-  'stickman-hook':    { title: 'Stickman Hook',      thumb: 'assets/Stickman-Hook.png',      url: 'https://nxtcoreee3.github.io/Stickman-Hook/' },
-  'geometry-dash-lite':{ title: 'Geometry Dash Lite',thumb: 'assets/Geometry-Dash-Lite.png', url: 'https://nxtcoreee3.github.io/Geometry-Dash-Lite/' },
-  'paper-io':         { title: 'Paper.io',           thumb: 'assets/Paper-io.png',           url: 'https://nxtcoreee3.github.io/Paper-io/' },
-  'cookie-clicker':   { title: 'Cookie Clicker',     thumb: 'assets/Cookie-Clicker.png',     url: 'https://nxtcoreee3.github.io/Cookie-Clicker/' },
-  'monkey-mart':      { title: 'Monkey Mart',        thumb: 'assets/Monkey-Mart.png',        url: 'https://nxtcoreee3.github.io/Monkey-Mart/' },
-  'drift-boss':       { title: 'Drift Boss',         thumb: 'assets/drift-boss.png',         url: 'https://nxtcoreee3.github.io/Drift-Boss/' },
-  'polytrack':        { title: 'Polytrack',           thumb: 'assets/polytrack.png',          url: 'https://nxtcoreee3.github.io/Polytrack/' },
+  'drive-mad':               { title: 'Drive Mad',              thumb: 'assets/Drive-Mad.png',              url: 'https://nxtcoreee3.github.io/Drive-Mad/' },
+  'stickman-hook':           { title: 'Stickman Hook',           thumb: 'assets/Stickman-Hook.png',          url: 'https://nxtcoreee3.github.io/Stickman-Hook/' },
+  'geometry-dash-lite':      { title: 'Geometry Dash Lite',      thumb: 'assets/Geometry-Dash-Lite.png',     url: 'https://nxtcoreee3.github.io/Geometry-Dash-Lite/' },
+  'paper-io':                { title: 'Paper.io',                thumb: 'assets/Paper-io.png',               url: 'https://nxtcoreee3.github.io/Paper-io/' },
+  'cookie-clicker':          { title: 'Cookie Clicker',          thumb: 'assets/Cookie-Clicker.png',         url: 'https://nxtcoreee3.github.io/Cookie-Clicker/' },
+  'monkey-mart':             { title: 'Monkey Mart',             thumb: 'assets/Monkey-Mart.png',            url: 'https://nxtcoreee3.github.io/Monkey-Mart/' },
+  'drift-boss':              { title: 'Drift Boss',              thumb: 'assets/drift-boss.png',             url: 'https://nxtcoreee3.github.io/Drift-Boss/' },
+  'polytrack':               { title: 'Polytrack',               thumb: 'assets/polytrack.png',              url: 'https://nxtcoreee3.github.io/Polytrack/' },
+  'crazy-motorcycle':        { title: 'Crazy Motorcycle',        thumb: 'assets/crazy-motorcycle.png',       url: 'https://nxtcoreee3.github.io/Crazy-Motorcycle/' },
+  'crazy-cars':              { title: 'Crazy Cars',              thumb: 'assets/crazy-cars.png',             url: 'https://nxtcoreee3.github.io/Crazy-Cars/' },
+  'table-tennis-world-tour': { title: 'Table Tennis World Tour', thumb: 'assets/table-tennis-world-tour.png',url: 'https://nxtcoreee3.github.io/Table-Tennis-World-Tour/' },
+  'moto-x3m':                { title: 'Moto X3M',               thumb: 'assets/moto-x3m.png',               url: 'https://nxtcoreee3.github.io/Moto-X3M/' },
+  '8-ball-classic':          { title: '8 Ball Classic',          thumb: 'assets/8-ball-classic.png',         url: 'https://nxtcoreee3.github.io/8-Ball-Classic/' },
 };
 
 /* ── year footer ── */

@@ -45,6 +45,8 @@
       color: var(--text);
       margin: 0 0 10px;
     }
+    .tab-btn { transition: background 0.15s, color 0.15s; }
+    .tab-active { background: var(--panel) !important; color: var(--text) !important; }
     .convo-sidebar-actions {
       display: flex;
       gap: 8px;
@@ -214,10 +216,19 @@
     <!-- Sidebar -->
     <div class="convo-sidebar">
       <div class="convo-sidebar-header">
-        <div class="convo-sidebar-title">💬 Messages</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+          <div class="convo-sidebar-title" style="margin:0;">💬 Messages</div>
+          <span style="display:inline-flex;align-items:center;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:0.8px;text-transform:uppercase;">Beta</span>
+        </div>
+        <div style="display:flex;gap:2px;background:var(--bg);border-radius:10px;padding:3px;margin-bottom:10px;">
+          <button id="tab-inbox" class="tab-btn tab-active" style="flex:1;padding:6px 8px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:var(--panel);color:var(--text);">Inbox</button>
+          <button id="tab-requests" class="tab-btn" style="flex:1;padding:6px 8px;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;background:transparent;color:var(--muted);display:flex;align-items:center;justify-content:center;gap:5px;">
+            Requests <span id="requests-badge" style="display:none;background:#ef4444;color:white;font-size:10px;font-weight:800;padding:1px 5px;border-radius:20px;">0</span>
+          </button>
+        </div>
         <div class="convo-sidebar-actions">
           <button id="new-dm-btn" class="sidebar-action-btn">✉️ New DM</button>
-          <button id="new-group-btn" class="sidebar-action-btn">👥 New Group</button>
+          <button id="new-group-btn" class="sidebar-action-btn">👥 Group</button>
         </div>
       </div>
       <div id="convo-list"></div>

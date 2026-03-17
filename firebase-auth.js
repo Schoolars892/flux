@@ -282,19 +282,18 @@ export function getCurrentUser() { return auth.currentUser; }
 
 /* ===================== FIRESTORE FAVORITES ===================== */
 export async function loadCloudFavs() {
-  return new Promise((resolve) => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      unsubscribe();
-      if (!user || user.isAnonymous) { resolve(null); return; }
-      try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        if (!snap.exists()) { resolve(null); return; }
-        const favs = snap.data().favorites;
-        // Only return actual array, return null if field missing so local cache is kept
-        resolve(Array.isArray(favs) ? favs : null);
-      } catch { resolve(null); }
-    });
+  // Wait up to 5s for auth to resolve
+  const user = await new Promise((resolve) => {
+    if (auth.currentUser !== null) { resolve(auth.currentUser); return; }
+    const unsub = onAuthStateChanged(auth, (u) => { unsub(); resolve(u); });
   });
+  if (!user || user.isAnonymous) return null;
+  try {
+    const snap = await getDoc(doc(db, 'users', user.uid));
+    if (!snap.exists()) return null;
+    const favs = snap.data().favorites;
+    return Array.isArray(favs) ? favs : null;
+  } catch { return null; }
 }
 
 export async function syncProfileFavs(favs) {

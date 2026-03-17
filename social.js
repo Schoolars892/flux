@@ -3,7 +3,8 @@
 import {
   getProfile, searchProfiles, renderBadges,
   initAuthUI, initServerStatus, initBroadcast,
-  initChaos, initJumpscare, initPresence, initCookieConsent
+  initChaos, initJumpscare, initPresence, initCookieConsent,
+  initChatLock
 } from './firebase-auth.js';
 
 import { initializeApp, getApps } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -47,6 +48,27 @@ document.addEventListener('DOMContentLoaded', () => {
   initChat();
   initSearch();
   initRecommended();
+
+  initChatLock('global',
+    () => {
+      // Locked — disable input
+      const input = document.getElementById('chat-input');
+      const send = document.getElementById('chat-send');
+      const area = document.getElementById('chat-input-area');
+      if (input) { input.disabled = true; input.placeholder = '🔒 Chat is locked by an admin'; }
+      if (send) send.disabled = true;
+      if (area) area.style.opacity = '0.5';
+    },
+    () => {
+      // Unlocked — re-enable
+      const input = document.getElementById('chat-input');
+      const send = document.getElementById('chat-send');
+      const area = document.getElementById('chat-input-area');
+      if (input) { input.disabled = false; input.placeholder = 'Say something...'; }
+      if (send) send.disabled = false;
+      if (area) area.style.opacity = '1';
+    }
+  );
 });
 
 /* ══════════════════════════════════════
@@ -206,6 +228,22 @@ async function sendMessage() {
   const input = document.getElementById('chat-input');
   const text = input.value.trim();
   if (!text || !_currentProfile) return;
+
+  // Check if global chat is locked
+  try {
+    const lockSnap = await getDoc(doc(db, 'stats', 'chatlock'));
+    if (lockSnap.exists() && lockSnap.data().globalLocked) {
+      input.value = '';
+      // Show locked notice
+      const container = document.getElementById('chat-messages');
+      const notice = document.createElement('div');
+      notice.style.cssText = 'text-align:center;padding:8px;color:#ef4444;font-size:12px;font-weight:600;';
+      notice.textContent = '🔒 Global chat is currently locked by an admin.';
+      container.appendChild(notice);
+      setTimeout(() => notice.remove(), 3000);
+      return;
+    }
+  } catch {}
 
   input.value = '';
   input.disabled = true;

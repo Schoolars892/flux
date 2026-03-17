@@ -913,6 +913,27 @@ export function initAuthUI(onUserChange) {
 
       <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:16px 0;">
 
+      <!-- ── CHAT LOCK ── -->
+      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🔒 Chat Controls</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f9fafb;border-radius:10px;border:1px solid rgba(0,0,0,0.07);">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#111827;">🌐 Global Chat</div>
+            <div id="global-chat-lock-status" style="font-size:11px;color:#6b7280;margin-top:2px;">Unlocked</div>
+          </div>
+          <button id="mod-global-chat-lock-btn" style="padding:7px 14px;background:#ef4444;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;">🔒 Lock</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f9fafb;border-radius:10px;border:1px solid rgba(0,0,0,0.07);">
+          <div>
+            <div style="font-size:13px;font-weight:700;color:#111827;">💬 Direct Messages</div>
+            <div id="dm-lock-status" style="font-size:11px;color:#6b7280;margin-top:2px;">Unlocked</div>
+          </div>
+          <button id="mod-dm-lock-btn" style="padding:7px 14px;background:#ef4444;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;">🔒 Lock</button>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:16px 0;">
+
       <!-- ── ADMIN ABUSE ── -->
       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">😈 Admin Abuse</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
@@ -924,6 +945,27 @@ export function initAuthUI(onUserChange) {
         <button id="mod-jumpscare-btn" style="padding:10px 8px;border:2px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#111827;">😱 Jumpscare</button>
         <button class="abuse-btn" data-effect="forceiframe" style="padding:10px 8px;border:2px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:600;color:#111827;grid-column:span 1;">🔒 Force Iframe</button>
         <button id="mod-abuse-stop" style="padding:10px 8px;border:2px solid #ef4444;border-radius:10px;background:#fff;cursor:pointer;font-size:13px;font-weight:700;color:#ef4444;">🛑 Stop All</button>
+      </div>
+
+      <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:16px 0;">
+
+      <!-- ── CHAT LOCKS ── -->
+      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🔒 Chat Controls</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f9fafb;border-radius:10px;border:1px solid rgba(0,0,0,0.07);">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#111827;">🌐 Global Chat</div>
+            <div style="font-size:11px;color:#6b7280;">Prevent users from sending messages</div>
+          </div>
+          <button id="mod-globalchat-lock" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #e5e7eb;background:#fff;color:#6b7280;transition:all 0.15s;">Lock</button>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:#f9fafb;border-radius:10px;border:1px solid rgba(0,0,0,0.07);">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:#111827;">💬 Direct Messages</div>
+            <div style="font-size:11px;color:#6b7280;">Prevent users from sending DMs</div>
+          </div>
+          <button id="mod-dms-lock" style="padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;border:2px solid #e5e7eb;background:#fff;color:#6b7280;transition:all 0.15s;">Lock</button>
+        </div>
       </div>
 
       <p id="mod-msg" style="font-size:12px;margin:12px 0 0;text-align:center;display:none;"></p>
@@ -983,6 +1025,42 @@ export function initAuthUI(onUserChange) {
     } catch (e) {
       msg.style.color = '#ef4444'; msg.textContent = 'Failed to send.'; msg.style.display = 'block';
     }
+  });
+
+  // Chat lock buttons
+  let _globalChatLocked = false;
+  let _dmLocked = false;
+
+  document.getElementById('mod-globalchat-lock').addEventListener('click', async () => {
+    _globalChatLocked = !_globalChatLocked;
+    const btn = document.getElementById('mod-globalchat-lock');
+    try {
+      await setDoc(doc(db, 'stats', 'chatlock'), {
+        globalLocked: _globalChatLocked,
+        dmLocked: _dmLocked,
+        updatedAt: new Date().toISOString()
+      });
+      btn.textContent = _globalChatLocked ? '🔓 Unlock' : '🔒 Lock';
+      btn.style.background = _globalChatLocked ? '#22c55e' : '#fff';
+      btn.style.color = _globalChatLocked ? '#fff' : '#6b7280';
+      btn.style.borderColor = _globalChatLocked ? '#22c55e' : '#e5e7eb';
+    } catch (e) { console.warn('Chat lock failed', e); }
+  });
+
+  document.getElementById('mod-dms-lock').addEventListener('click', async () => {
+    _dmLocked = !_dmLocked;
+    const btn = document.getElementById('mod-dms-lock');
+    try {
+      await setDoc(doc(db, 'stats', 'chatlock'), {
+        globalLocked: _globalChatLocked,
+        dmLocked: _dmLocked,
+        updatedAt: new Date().toISOString()
+      });
+      btn.textContent = _dmLocked ? '🔓 Unlock' : '🔒 Lock';
+      btn.style.background = _dmLocked ? '#22c55e' : '#fff';
+      btn.style.color = _dmLocked ? '#fff' : '#6b7280';
+      btn.style.borderColor = _dmLocked ? '#22c55e' : '#e5e7eb';
+    } catch (e) { console.warn('DM lock failed', e); }
   });
 
   // Admin abuse buttons — toggle on/off
@@ -1046,6 +1124,28 @@ export function initAuthUI(onUserChange) {
         btn.style.color = on ? '#fff' : '#111827';
         btn.style.borderColor = on ? '#111827' : '#e5e7eb';
       });
+    } catch {}
+    // Sync chat lock state
+    try {
+      const lockSnap = await getDoc(doc(db, 'stats', 'chatlock'));
+      if (lockSnap.exists()) {
+        _globalChatLocked = lockSnap.data().globalLocked || false;
+        _dmLocked = lockSnap.data().dmLocked || false;
+        const glBtn = document.getElementById('mod-globalchat-lock');
+        const dmBtn = document.getElementById('mod-dms-lock');
+        if (glBtn) {
+          glBtn.textContent = _globalChatLocked ? '🔓 Unlock' : '🔒 Lock';
+          glBtn.style.background = _globalChatLocked ? '#22c55e' : '#fff';
+          glBtn.style.color = _globalChatLocked ? '#fff' : '#6b7280';
+          glBtn.style.borderColor = _globalChatLocked ? '#22c55e' : '#e5e7eb';
+        }
+        if (dmBtn) {
+          dmBtn.textContent = _dmLocked ? '🔓 Unlock' : '🔒 Lock';
+          dmBtn.style.background = _dmLocked ? '#22c55e' : '#fff';
+          dmBtn.style.color = _dmLocked ? '#fff' : '#6b7280';
+          dmBtn.style.borderColor = _dmLocked ? '#22c55e' : '#e5e7eb';
+        }
+      }
     } catch {}
   });
 
@@ -1550,6 +1650,29 @@ export function initJumpscare() {
         triggerJumpscare();
       } catch {}
     }, 1500);
+  });
+}
+
+/* ===================== CHAT LOCK ===================== */
+export function initChatLock(type, onLocked, onUnlocked) {
+  // type: 'global' | 'dm'
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js").then(async ({ onSnapshot, getDoc, doc: firestoreDoc }) => {
+    const lockRef = firestoreDoc(db, 'stats', 'chatlock');
+
+    // Pre-load current state
+    try {
+      const snap = await getDoc(lockRef);
+      if (snap.exists()) {
+        const locked = type === 'global' ? snap.data().globalLocked : snap.data().dmLocked;
+        if (locked) onLocked(); else onUnlocked();
+      }
+    } catch {}
+
+    onSnapshot(lockRef, (snap) => {
+      if (!snap.exists()) { onUnlocked(); return; }
+      const locked = type === 'global' ? snap.data().globalLocked : snap.data().dmLocked;
+      if (locked) onLocked(); else onUnlocked();
+    });
   });
 }
 

@@ -24,6 +24,10 @@ Flux currently includes the following games:
 	•	Polytrack
 
 	•	Drift Boss
+
+	•	8 Ball Classic
+
+	•	Moto X3M3
 	
 	Each game can be launched directly from the website.
 

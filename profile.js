@@ -110,7 +110,8 @@ function renderProfile(profile, { isOwn, isAdmin, isFollowing, canSeeContent, cu
 
   let followBtn = '';
   if (currentUser && !currentUser.isAnonymous && !isOwn) {
-    followBtn = `<button id="follow-btn" class="btn-follow ${isFollowing ? 'following' : ''}">${isFollowing ? 'Following' : 'Follow'}</button>`;
+    followBtn = `<button id="follow-btn" class="btn-follow ${isFollowing ? 'following' : ''}">${isFollowing ? 'Following' : 'Follow'}</button>
+    <a href="messages.html?with=${profile.username}" style="padding:9px 16px;background:transparent;border:1.5px solid var(--glass-border);border-radius:20px;font-size:13px;font-weight:600;color:var(--text);text-decoration:none;transition:border-color 0.15s;" onmouseover="this.style.borderColor='var(--accent)';this.style.color='var(--accent)'" onmouseout="this.style.borderColor='var(--glass-border)';this.style.color='var(--text)'">💬 Message</a>`;
   }
 
   let editBtn = isOwn ? `<button id="edit-profile-btn" class="edit-profile-btn">✏️ Edit Profile</button>` : '';

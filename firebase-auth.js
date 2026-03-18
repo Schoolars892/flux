@@ -877,6 +877,7 @@ export function getContrastColor(hexColor) {
 }
 
 
+export async function followUser(targetUid) {
   const user = auth.currentUser;
   if (!user || user.isAnonymous) return;
   try {
@@ -887,11 +888,8 @@ export function getContrastColor(hexColor) {
     if (!mySnap.exists()) { console.warn('followUser: follower has no profile doc'); return; }
     const myFollowing = mySnap.data().following || [];
     if (myFollowing.includes(targetUid)) { console.warn('followUser: already following'); return; }
-    console.log('followUser: updating my following...', user.uid, '->', targetUid);
     await updateDoc(myRef, { following: arrayUnion(targetUid) });
-    console.log('followUser: updating their followers...', targetUid);
     await updateDoc(theirRef, { followers: arrayUnion(user.uid) });
-    // Send notification to followed user
     const myProfile = await getProfile(user.uid);
     if (myProfile) {
       await sendNotification(targetUid, {
@@ -901,7 +899,6 @@ export function getContrastColor(hexColor) {
         link: `profile.html?user=${myProfile.username}`,
       });
     }
-    console.log('followUser: done!');
   } catch (e) { console.error('Follow failed:', e.code, e.message); }
 }
 

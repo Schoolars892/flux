@@ -230,7 +230,6 @@ function renderProfile(profile, { isOwn, isAdmin, isFollowing, canSeeContent, cu
   const bannerTextColor = getContrastColor(bannerColor);
 
   // Generate floating emojis for confetti effect
-  const bannerTextColor = getContrastColor(bannerColor);
   let bannerInner = bannerEmoji ? `<span style="font-size:48px;position:relative;z-index:1;color:${bannerTextColor};">${bannerEmoji}</span>` : '';
   if (effect === 'confetti') {
     const confettiEmojis = ['🎉','✨','🎊','⭐','💫','🌟'];

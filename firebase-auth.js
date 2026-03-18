@@ -807,17 +807,17 @@ async function loadNotifications(uid) {
   list.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:13px;">Loading...</div>';
 
   try {
-    const { collection: col, query: q, where: w, orderBy: ob, limit: lim, getDocs: gd } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const snap = await gd(q(col(db, 'notifications'), w('uid', '==', uid), ob('createdAt', 'desc'), lim(20)));
+    const { collection: col, query: q, where: w, limit: lim, getDocs: gd } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const snap = await gd(q(col(db, 'notifications'), w('uid', '==', uid), lim(20)));
+    const docs = snap.docs.map(d => ({ id: d.id, ...d.data() })).sort((a,b) => new Date(b.createdAt) - new Date(a.createdAt));
 
-    if (snap.empty) {
+    if (!docs.length) {
       list.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px;">No notifications yet</div>';
       return;
     }
 
     list.innerHTML = '';
-    snap.docs.forEach(d => {
-      const n = { id: d.id, ...d.data() };
+    docs.forEach(n => {
       const icons = { follow: '👤', message: '💬', points: '⭐', system: '📣', report: '⚠️' };
       const timeAgo = getTimeAgo(n.createdAt);
       const item = document.createElement(n.link ? 'a' : 'div');
@@ -1182,15 +1182,21 @@ export function initAuthUI(onUserChange) {
         <span>👤</span> My Profile
       </a>
       <a href="social.html" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:#111827;text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
-        <span>💬</span> Social & Chat <span style="display:inline-flex;align-items:center;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;font-size:8px;font-weight:800;padding:1px 5px;border-radius:20px;letter-spacing:0.8px;text-transform:uppercase;margin-left:4px;position:relative;animation:none;" class="dropdown-beta">BETA</span>
+        <span>💬</span> Social & Chat <span style="display:inline-flex;align-items:center;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;font-size:8px;font-weight:800;padding:1px 5px;border-radius:20px;letter-spacing:0.8px;text-transform:uppercase;margin-left:4px;" class="dropdown-beta">BETA</span>
       </a>
+      <a href="messages.html" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:#111827;text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
+        <span>💬</span> Messages
+      </a>
+      <button id="dropdown-dark-toggle" style="width:100%;padding:12px 16px;background:none;border:none;border-bottom:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:#111827;display:flex;align-items:center;gap:10px;">
+        <span id="dropdown-dark-icon">🌙</span> <span id="dropdown-dark-label">Dark Mode</span>
+      </button>
       <a href="info.html" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:#111827;text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
         <span>🔒</span> Privacy Policy
       </a>
       <button id="sign-out-btn" style="width:100%;padding:12px 16px;background:none;border:none;text-align:left;cursor:pointer;font-size:13px;color:#ef4444;display:flex;align-items:center;gap:10px;">
         <span>🚪</span> Sign Out
       </button>
-      <button id="mod-panel-btn" style="display:none;width:100%;padding:12px 16px;background:none;border:none;border-top:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:#7c3aed;display:none;align-items:center;gap:10px;">
+      <button id="mod-panel-btn" style="display:none;width:100%;padding:12px 16px;background:none;border:none;border-top:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:#7c3aed;align-items:center;gap:10px;">
         <span>⚙️</span> Mod Panel
       </button>
     </div>
@@ -1268,6 +1274,17 @@ export function initAuthUI(onUserChange) {
   document.getElementById('sign-out-btn').addEventListener('click', async () => {
     await logOut();
     document.getElementById('profile-dropdown').style.display = 'none';
+  });
+
+  document.getElementById('dropdown-dark-toggle').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isDark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('flux_dark', isDark ? '1' : '0');
+    document.getElementById('dropdown-dark-icon').textContent = isDark ? '☀️' : '🌙';
+    document.getElementById('dropdown-dark-label').textContent = isDark ? 'Light Mode' : 'Dark Mode';
+    // Also update the standalone toggle if it exists
+    const standaloneBtn = document.getElementById('dark-toggle');
+    if (standaloneBtn) standaloneBtn.textContent = isDark ? '☀️' : '🌙';
   });
 
   userDisplay.addEventListener('click', (e) => {
@@ -1761,6 +1778,12 @@ export function initAuthUI(onUserChange) {
         }
         // Init notifications for signed-in users
         initNotifications();
+        // Sync dropdown dark mode icon
+        const isDark = document.documentElement.classList.contains('dark');
+        const icon = document.getElementById('dropdown-dark-icon');
+        const label = document.getElementById('dropdown-dark-label');
+        if (icon) icon.textContent = isDark ? '☀️' : '🌙';
+        if (label) label.textContent = isDark ? 'Light Mode' : 'Dark Mode';
       }
 
       if (user.isAnonymous) {

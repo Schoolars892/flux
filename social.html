@@ -305,6 +305,12 @@
     .online-item:hover { color: var(--accent); }
     .online-dot { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; flex-shrink: 0; }
   </style>
+  <style>
+    @media (max-width: 768px) {
+      #main-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap !important; }
+      #main-nav::-webkit-scrollbar { display: none; }
+    }
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -314,7 +320,7 @@
     </div>
     <nav class="nav">
       <button class="nav-toggle" aria-controls="main-nav" aria-expanded="false">☰</button>
-      <ul id="main-nav" class="nav-list" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap;">
+      <ul id="main-nav" class="nav-list">
         <li><a href="index.html">Home</a></li>
         <li><a href="games.html">Games</a></li>
         <li><a href="social.html" class="active"><span class="beta-nav">Social <span class="beta-badge">Beta</span></span></a></li>

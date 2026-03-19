@@ -6,6 +6,12 @@
   <title>Credits — Flux</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <style>
+    @media (max-width: 768px) {
+      #main-nav { overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none; flex-wrap: nowrap !important; }
+      #main-nav::-webkit-scrollbar { display: none; }
+    }
+  </style>
 </head>
 <body>
   <header class="topbar">
@@ -15,7 +21,7 @@
     </div>
     <nav class="nav">
       <button class="nav-toggle" aria-controls="main-nav" aria-expanded="false">☰</button>
-      <ul id="main-nav" class="nav-list" style="overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;flex-wrap:nowrap;">
+      <ul id="main-nav" class="nav-list">
         <li><a href="index.html">Home</a></li>
         <li><a href="games.html">Games</a></li>
         <li><a href="social.html">Social</a></li>

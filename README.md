@@ -29,7 +29,15 @@ Flux currently includes the following games:
 
 	•	Moto X3M3
 
-	•	Table Tennis World Tour	
+	•	Table Tennis World Tour
+	
+	•	8 Ball Classic
+	
+	•	Angry Birds
+	
+	•	slowroads
+	
+	•	Fruit Ninja
 	
 	Each game can be launched directly from the website.
 

@@ -416,29 +416,30 @@ async function openDMWithUsername(username) {
 async function startDM(targetUid, targetProfile) {
   if (targetUid === _currentUser.uid) return;
 
-  // Check existing DM
-  const q = query(collection(db, 'conversations'), where('type', '==', 'dm'), where('members', 'array-contains', _currentUser.uid));
-  const snap = await getDocs(q);
-  let existing = null;
-  snap.docs.forEach(d => { if (d.data().members.includes(targetUid)) existing = { id: d.id, ...d.data() }; });
+  // Deterministic ID — always the same for any two users regardless of who initiates
+  const convoId = [_currentUser.uid, targetUid].sort().join('_dm_');
 
-  if (existing) {
+  const convoRef = doc(db, 'conversations', convoId);
+  const convoSnap = await getDoc(convoRef);
+
+  if (convoSnap.exists()) {
+    const data = convoSnap.data();
     // If it was a pending request to us, accept it
-    if (existing.status === 'pending' && existing.to === _currentUser.uid) {
-      await updateDoc(doc(db, 'conversations', existing.id), { status: 'accepted' });
+    if (data.status === 'pending' && data.to === _currentUser.uid) {
+      await updateDoc(convoRef, { status: 'accepted' });
     }
-    openConversation(existing.id, targetProfile.displayName || targetProfile.username, false);
+    openConversation(convoId, targetProfile.displayName || targetProfile.username, false);
     return;
   }
 
-  // Check if we follow each other — if yes, auto-accept; otherwise send as request
+  // Create new DM with deterministic ID
   const myFollowing = _currentProfile.following || [];
   const theirProfile = await getProfile(targetUid);
   const theyFollowMe = (theirProfile?.following || []).includes(_currentUser.uid);
   const mutuals = myFollowing.includes(targetUid) && theyFollowMe;
   const status = mutuals ? 'accepted' : 'pending';
 
-  const convoData = {
+  await setDoc(convoRef, {
     type: 'dm',
     members: [_currentUser.uid, targetUid],
     from: _currentUser.uid,
@@ -448,10 +449,9 @@ async function startDM(targetUid, targetProfile) {
     lastMessageAt: serverTimestamp(),
     lastMessage: '',
     unread: { [targetUid]: 0, [_currentUser.uid]: 0 }
-  };
+  });
 
-  const convoRef = await addDoc(collection(db, 'conversations'), convoData);
-  openConversation(convoRef.id, targetProfile.displayName || targetProfile.username, false);
+  openConversation(convoId, targetProfile.displayName || targetProfile.username, false);
 }
 
 /* ── New DM modal ── */

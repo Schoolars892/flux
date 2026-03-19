@@ -103,8 +103,15 @@ const GAMES = [
   thumb: 'assets/angry-birds.png',
   url: 'https://nxtcoreee3.github.io/Angry-Birds/',
   desc: 'Launch birds with a slingshot to destroy structures and defeat the pigs.'
+},
+{
+  id: 'slowroads',
+  title: 'slowroads',
+  thumb: 'assets/slowroads.png',
+  url: 'https://nxtcoreee3.github.io/slowroads/',
+  desc: 'Drive endlessly through relaxing scenic roads with no pressure or goals.'
 }
-];
+   ];
 
 // expose game count globally for stats button
 window._FLUX_GAME_COUNT = GAMES.length;

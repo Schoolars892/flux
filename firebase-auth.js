@@ -2240,25 +2240,18 @@ export function initJumpscare() {
     } catch {}
 
     function triggerJumpscare() {
-      // Admin sees a success toast instead
-      if (auth.currentUser?.uid === 'zEy6TO5ligf2um4rssIZs9C9X7f2') {
-        let container = document.getElementById('toast-container');
-        if (!container) { container = document.createElement('div'); container.id = 'toast-container'; container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;'; document.body.appendChild(container); }
-        const t = document.createElement('div');
-        t.style.cssText = 'background:#111827;border-radius:12px;padding:12px 16px;box-shadow:0 8px 30px rgba(0,0,0,0.3);border-left:4px solid #22c55e;font-size:13px;font-weight:600;color:#22c55e;pointer-events:all;opacity:0;transform:translateY(8px);transition:all 0.25s ease;';
-        t.textContent = '✅ Jumpscare deployed to all users!';
-        container.appendChild(t);
-        requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
-        setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; setTimeout(() => t.remove(), 250); }, 3000);
-        return;
-      }
+      // Admin gets a brief preview + success toast
+      const isAdmin = auth.currentUser?.uid === 'zEy6TO5ligf2um4rssIZs9C9X7f2';
 
       if (document.getElementById('server-status-overlay')) return;
 
       const overlay = document.createElement('div');
       overlay.id = 'jumpscare-overlay';
       overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;display:flex;align-items:center;justify-content:center;cursor:pointer;';
-      overlay.innerHTML = `<img src="assets/jumpscare.png" alt="" style="max-width:100vw;max-height:100vh;object-fit:contain;animation:jumpscare-pop 0.1s ease-out;">`;
+      overlay.innerHTML = `
+        <img src="assets/jumpscare.png" alt="" style="max-width:100vw;max-height:100vh;object-fit:contain;animation:jumpscare-pop 0.1s ease-out;">
+        ${isAdmin ? '<div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#22c55e;font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px;white-space:nowrap;pointer-events:none;">👁 Admin Preview</div>' : ''}
+      `;
 
       const style = document.createElement('style');
       style.textContent = `@keyframes jumpscare-pop { 0%{transform:scale(0.5);opacity:0} 100%{transform:scale(1);opacity:1} }`;
@@ -2279,7 +2272,19 @@ export function initJumpscare() {
 
       const dismiss = () => { overlay.remove(); style.remove(); };
       overlay.addEventListener('click', dismiss);
-      setTimeout(dismiss, 2500);
+      setTimeout(dismiss, isAdmin ? 2000 : 2500);
+
+      // Show confirmation toast for admin
+      if (isAdmin) {
+        let container = document.getElementById('toast-container');
+        if (!container) { container = document.createElement('div'); container.id = 'toast-container'; container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:999999;display:flex;flex-direction:column;gap:8px;pointer-events:none;'; document.body.appendChild(container); }
+        const t = document.createElement('div');
+        t.style.cssText = 'background:#111827;border-radius:12px;padding:12px 16px;box-shadow:0 8px 30px rgba(0,0,0,0.3);border-left:4px solid #22c55e;font-size:13px;font-weight:600;color:#22c55e;pointer-events:all;opacity:0;transform:translateY(8px);transition:all 0.25s ease;';
+        t.textContent = '✅ Jumpscare deployed to all users!';
+        container.appendChild(t);
+        requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+        setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; setTimeout(() => t.remove(), 250); }, 3000);
+      }
     }
 
     onSnapshot(jumpscareRef, (snap) => {

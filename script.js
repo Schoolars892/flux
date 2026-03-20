@@ -96,42 +96,7 @@ const GAMES = [
     thumb: 'assets/8-ball-classic.png',
     url: 'https://nxtcoreee3.github.io/8-Ball-Classic/',
     desc: 'Play classic 8-ball pool against friends or the AI in a fun, simple game.'
-  },
-{
-  id: 'angry-birds',
-  title: 'Angry Birds',
-  thumb: 'assets/angry-birds.png',
-  url: 'https://nxtcoreee3.github.io/Angry-Birds/',
-  desc: 'Launch birds with a slingshot to destroy structures and defeat the pigs.'
-},
-{
-  id: 'slowroads',
-  title: 'slowroads',
-  thumb: 'assets/slowroads.png',
-  url: 'https://nxtcoreee3.github.io/slowroads/',
-  desc: 'Drive endlessly through relaxing scenic roads with no pressure or goals.'
-},
-{
-  id: 'fruit-ninja',
-  title: 'Fruit Ninja',
-  thumb: 'assets/fruit-ninja.png',
-  url: 'https://nxtcoreee3.github.io/Fruit-Ninja/',
-  desc: 'Slice flying fruits, build combos, and avoid bombs to get a high score.'
-},
-{
-  id: '5-nights-at-epsteins',
-  title: '5 Nights At Epsteins',
-  thumb: 'assets/5-nights-at-epsteins.png',
-  url: 'https://nxtcoreee3.github.io/5-Nights-At-Epsteins/',
-  desc: 'Survive five nights using cameras, strategy, and quick reactions to avoid danger.'
-},
-{
-  id: 'eaglercraft',
-  title: 'Eaglercraft',
-  thumb: 'assets/eaglercraft.png',
-  url: 'https://eaglercraft.app/web/',
-  desc: 'Play a browser-based Minecraft-style game with survival, building, and multiplayer. (Hosted by EaglercraftX)'
-}
+  }
 ];
 
 // expose game count globally for stats button
@@ -732,37 +697,54 @@ function openFullscreen(url, title) {
     <div id="fs-bar" style="position:absolute;top:0;left:0;right:0;z-index:2;display:flex;align-items:center;gap:10px;padding:10px 14px;background:linear-gradient(to bottom,rgba(0,0,0,0.75),transparent);transition:opacity 0.3s;">
       <button id="fs-exit" style="background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);color:white;border-radius:8px;padding:6px 12px;font-size:13px;font-weight:700;cursor:pointer;backdrop-filter:blur(4px);">✕ Exit</button>
       <span style="font-size:13px;font-weight:600;color:rgba(255,255,255,0.85);flex:1;">${title}</span>
-      <button id="fs-newtab" style="display:none;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.2);color:white;border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;backdrop-filter:blur(4px);">↗ Open in New Tab</button>
     </div>
     <iframe id="fs-iframe" src="${url}" style="flex:1;border:0;width:100%;height:100%;" allow="autoplay; fullscreen" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
-    <div id="fs-embed-warn" style="display:none;position:absolute;inset:0;z-index:3;display:none;align-items:center;justify-content:center;flex-direction:column;gap:12px;background:rgba(0,0,0,0.85);">
-      <span style="font-size:32px;">🚫</span>
-      <span style="color:white;font-size:15px;font-weight:600;">This game can't be embedded.</span>
-      <button id="fs-fallback-btn" style="background:#3a7dff;color:white;border:none;border-radius:10px;padding:10px 22px;font-size:14px;font-weight:700;cursor:pointer;">↗ Open in New Tab</button>
+    <div id="fs-embed-warn" style="display:none;position:absolute;inset:0;z-index:3;align-items:center;justify-content:center;flex-direction:column;gap:14px;background:rgba(0,0,0,0.88);text-align:center;padding:24px;">
+      <span style="font-size:40px;">⚠️</span>
+      <span style="color:white;font-size:16px;font-weight:700;">This game might not support embedding</span>
+      <span style="color:rgba(255,255,255,0.6);font-size:13px;max-width:320px;line-height:1.5;">It's still loading — some games take a moment to boot up. You can wait, try anyway, or open it in a new tab.</span>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:4px;">
+        <button id="fs-try-anyway" style="padding:10px 20px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.3);color:white;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;backdrop-filter:blur(4px);">⟳ Try Anyway</button>
+        <button id="fs-fallback-btn" style="padding:10px 20px;background:#3a7dff;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">↗ Open in New Tab</button>
+      </div>
     </div>
   `;
   document.body.appendChild(fs);
   const bar = fs.querySelector('#fs-bar');
   const fsIframe = fs.querySelector('#fs-iframe');
   const fsWarn = fs.querySelector('#fs-embed-warn');
-  const fsNewTab = fs.querySelector('#fs-newtab');
   let barTimer;
   const showBar = () => { bar.style.opacity = '1'; clearTimeout(barTimer); barTimer = setTimeout(() => { bar.style.opacity = '0'; }, 3000); };
   showBar();
   fs.addEventListener('mousemove', showBar);
   fs.addEventListener('touchstart', showBar, { passive: true });
   fs.querySelector('#fs-exit').addEventListener('click', () => fs.remove());
-  fsNewTab.addEventListener('click', () => window.open(url, '_blank', 'noopener'));
   fs.querySelector('#fs-fallback-btn').addEventListener('click', () => window.open(url, '_blank', 'noopener'));
-  // Detect embed failure
+
+  // "Try Anyway" — dismiss warning, keep iframe running
+  fs.querySelector('#fs-try-anyway').addEventListener('click', () => {
+    fsWarn.style.display = 'none';
+  });
+
   let fsLoaded = false;
-  fsIframe.addEventListener('load', () => { fsLoaded = true; }, { once: true });
-  setTimeout(() => {
+  let warnShown = false;
+  const embedTimer = setTimeout(() => {
     if (!fsLoaded) {
       fsWarn.style.display = 'flex';
-      fsNewTab.style.display = '';
+      warnShown = true;
     }
-  }, 2200);
+  }, 12000);
+
+  // If game loads after warning appeared — dismiss it and we're good
+  fsIframe.addEventListener('load', () => {
+    fsLoaded = true;
+    clearTimeout(embedTimer);
+    if (warnShown) {
+      fsWarn.style.display = 'none';
+      warnShown = false;
+    }
+  }, { once: true });
+
   const escHandler = (e) => { if (e.key === 'Escape') { fs.remove(); window.removeEventListener('keydown', escHandler); } };
   window.addEventListener('keydown', escHandler);
 }
@@ -803,18 +785,49 @@ function openPlayModal(url, title) {
   if (iframe) {
     embedWarning?.classList.add('hidden');
     if (fsBtn) fsBtn.style.display = '';
+    if (openTabBtn) openTabBtn.style.display = 'none';
     iframe.src = url;
+
+    // Build "Try Anyway" button inside embedWarning if not already there
+    if (embedWarning && !embedWarning.querySelector('.try-anyway-btn')) {
+      const tryBtn = document.createElement('button');
+      tryBtn.className = 'try-anyway-btn';
+      tryBtn.textContent = '⟳ Try Anyway';
+      tryBtn.style.cssText = 'margin-left:10px;padding:4px 12px;background:var(--accent,#3a7dff);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;';
+      tryBtn.addEventListener('click', () => {
+        embedWarning.classList.add('hidden');
+        if (fsBtn) { fsBtn.style.display = ''; }
+        if (openTabBtn) openTabBtn.style.display = 'none';
+      });
+      embedWarning.appendChild(tryBtn);
+    }
+
     let loaded = false;
-    iframe.addEventListener('load', () => { loaded=true; embedWarning?.classList.add('hidden'); }, { once:true });
-    setTimeout(() => {
+    let warnShown = false;
+
+    const embedTimer = setTimeout(() => {
       if (!loaded) {
         embedWarning?.classList.remove('hidden');
-        if (fsBtn) fsBtn.style.display = 'none'; // hide if embedding blocked
-        if (openTabBtn) openTabBtn.style.display = ''; // show new tab only now
+        warnShown = true;
+        if (fsBtn) fsBtn.style.display = 'none';
+        if (openTabBtn) openTabBtn.style.display = '';
         const fb = embedWarning?.querySelector('a');
-        if (fb) { fb.href=url; fb.onclick=()=>{ window.open(url,'_blank','noopener'); return true; }; }
+        if (fb) { fb.href = url; fb.onclick = () => { window.open(url, '_blank', 'noopener'); return true; }; }
       }
-    }, 2200);
+    }, 12000);
+
+    iframe.addEventListener('load', () => {
+      loaded = true;
+      clearTimeout(embedTimer);
+      // If warning was already showing, dismiss it and restore fullscreen button
+      if (warnShown) {
+        embedWarning?.classList.add('hidden');
+        if (openTabBtn) openTabBtn.style.display = 'none';
+        if (fsBtn) { fsBtn.style.display = ''; }
+        warnShown = false;
+      }
+    }, { once: true });
+
   } else {
     window.open(url, '_blank', 'noopener');
   }

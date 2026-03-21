@@ -1,6 +1,21 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <script>
+    // Apply dark/beta instantly before first paint to prevent flash
+    (function() {
+      try {
+        if (localStorage.getItem('flux_dark') === '1' || 
+            (localStorage.getItem('flux_dark') === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+        if (localStorage.getItem('flux_beta') === '1') {
+          document.documentElement.classList.add('beta');
+        }
+      } catch(e) {}
+    })();
+  </script>
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Social — Flux</title>

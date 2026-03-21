@@ -99,7 +99,7 @@ body {
 .nav-toggle { display: none; background: none; border: 0; color: var(--muted); font-size: 18px; padding: 6px 8px; border-radius: 8px; }
 .nav-list {
   display: flex;
-  gap: 2px;
+  gap: 4px;
   list-style: none;
   padding: 0;
   margin: 0;
@@ -108,8 +108,8 @@ body {
   color: var(--muted);
   text-decoration: none;
   font-weight: 600;
-  font-size: 13px;
-  padding: 6px 10px;
+  font-size: 14px;
+  padding: 7px 14px;
   border-radius: 8px;
   transition: background 0.15s, color 0.15s;
   white-space: nowrap;

@@ -536,18 +536,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Load favs from cloud then render games so stars are correct from the start
+  // Render games immediately from local data so grid always shows
+  if (document.getElementById('game-grid') || document.getElementById('games-grid')) {
+    renderGames(GAMES);
+  }
+
+  // Then load cloud favs + Firebase stats in the background and re-render with full data
   loadCloudFavs().then(async cloud => {
     if (cloud !== null) { _favsCache = cloud; saveLocalFavs(cloud); }
-    // Load all game stats (hot, new, compatibility, ratings) before rendering
-    _allGameStats = await fetchAllGameStats();
-    const hotGame = await fetchHotGame();
-    if (hotGame) _hotGameId = hotGame.id;
-    // Populate newGameCache from allGameStats
-    GAMES.forEach(g => { _newGameCache[g.id] = _allGameStats[g.id]?.firstSeen || null; });
+    try {
+      const [stats, hotGame] = await Promise.all([
+        fetchAllGameStats(),
+        fetchHotGame()
+      ]);
+      _allGameStats = stats || {};
+      if (hotGame) _hotGameId = hotGame.id;
+      GAMES.forEach(g => { _newGameCache[g.id] = _allGameStats[g.id]?.firstSeen || null; });
+    } catch {
+      // Firebase down — games already rendered, just skip stats enhancement
+    }
+    // Re-render with full data (ratings, compat badges, hot/new badges, correct fav stars)
     if (document.getElementById('game-grid') || document.getElementById('games-grid')) {
       renderGames(GAMES);
     }
+  }).catch(() => {
+    // loadCloudFavs itself failed — games already showing, nothing more to do
   });
 });
 

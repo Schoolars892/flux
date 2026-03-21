@@ -1188,6 +1188,9 @@ export function initAuthUI(onUserChange) {
       <button id="dropdown-dark-toggle" style="width:100%;padding:12px 16px;background:none;border:none;border-bottom:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:#111827;display:flex;align-items:center;gap:10px;">
         <span id="dropdown-dark-icon">🌙</span> <span id="dropdown-dark-label">Dark Mode</span>
       </button>
+      <button id="beta-mode-btn" style="width:100%;padding:12px 16px;background:none;border:none;border-bottom:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:#111827;display:flex;align-items:center;gap:10px;">
+        <span>🧪</span> <span>Beta UI</span> <span id="beta-mode-indicator" style="display:none;" class="beta-mode-indicator">ON</span>
+      </button>
       <a href="info.html" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:#111827;text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
         <span>🔒</span> Privacy Policy
       </a>
@@ -1307,9 +1310,30 @@ export function initAuthUI(onUserChange) {
     localStorage.setItem('flux_dark', isDark ? '1' : '0');
     document.getElementById('dropdown-dark-icon').textContent = isDark ? '☀️' : '🌙';
     document.getElementById('dropdown-dark-label').textContent = isDark ? 'Light Mode' : 'Dark Mode';
-    // Also update the standalone toggle if it exists
     const standaloneBtn = document.getElementById('dark-toggle');
     if (standaloneBtn) standaloneBtn.textContent = isDark ? '☀️' : '🌙';
+  });
+
+  document.getElementById('beta-mode-btn')?.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const isBeta = document.documentElement.classList.toggle('beta');
+    localStorage.setItem('flux_beta', isBeta ? '1' : '0');
+    const indicator = document.getElementById('beta-mode-indicator');
+    if (indicator) indicator.style.display = isBeta ? 'inline-flex' : 'none';
+    // Persist to Firestore profile
+    try {
+      const user = auth.currentUser;
+      if (user && !user.isAnonymous) {
+        await updateDoc(doc(db, 'profiles', user.uid), { betaMode: isBeta });
+      }
+    } catch {}
+    // Show toast
+    const t = document.createElement('div');
+    t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;background:${isBeta ? 'linear-gradient(135deg,#7c6aff,#a855f7)' : '#1a1d27'};color:white;padding:12px 22px;border-radius:20px;font-size:13px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,0.3);pointer-events:none;opacity:0;transition:opacity 0.2s;`;
+    t.textContent = isBeta ? '🧪 Beta UI activated!' : '✓ Returned to classic UI';
+    document.body.appendChild(t);
+    requestAnimationFrame(() => t.style.opacity = '1');
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 200); }, 2500);
   });
 
   userDisplay.addEventListener('click', async (e) => {
@@ -1986,6 +2010,23 @@ export function initAuthUI(onUserChange) {
         const label = document.getElementById('dropdown-dark-label');
         if (icon) icon.textContent = isDark ? '☀️' : '🌙';
         if (label) label.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+        // Apply beta mode from profile
+        try {
+          const profileSnap = await getDoc(doc(db, 'profiles', user.uid));
+          if (profileSnap.exists()) {
+            const betaOn = profileSnap.data().betaMode || false;
+            document.documentElement.classList.toggle('beta', betaOn);
+            localStorage.setItem('flux_beta', betaOn ? '1' : '0');
+            const indicator = document.getElementById('beta-mode-indicator');
+            if (indicator) indicator.style.display = betaOn ? 'inline-flex' : 'none';
+          }
+        } catch {
+          // Fallback to localStorage if Firestore unavailable
+          const betaLocal = localStorage.getItem('flux_beta') === '1';
+          document.documentElement.classList.toggle('beta', betaLocal);
+          const indicator = document.getElementById('beta-mode-indicator');
+          if (indicator) indicator.style.display = betaLocal ? 'inline-flex' : 'none';
+        }
       }
 
       if (user.isAnonymous) {

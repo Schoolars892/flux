@@ -191,6 +191,13 @@ document.addEventListener('click', (e) => {
 /* ===================== DARK MODE ===================== */
 const DARK_KEY = 'flux_dark';
 
+// Apply beta immediately from localStorage to avoid flash
+(function() {
+  if (localStorage.getItem('flux_beta') === '1') {
+    document.documentElement.classList.add('beta');
+  }
+})();
+
 function applyDark(on) {
   document.documentElement.classList.toggle('dark', on);
   localStorage.setItem(DARK_KEY, on ? '1' : '0');

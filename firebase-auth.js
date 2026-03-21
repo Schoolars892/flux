@@ -1317,20 +1317,25 @@ export function initAuthUI(onUserChange) {
     const isOpening = dd.style.display === 'none';
     dd.style.display = isOpening ? 'block' : 'none';
     if (isOpening) {
-      // Update spin cooldown label
       try {
-        const { getLastSpin } = await import('./firebase-auth.js');
-        const last = await getLastSpin();
+        const lastSnap = await (async () => {
+          const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+          const { getFirestore, doc: fd, getDoc: gd } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+          const { getApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+          const user = getAuth(getApp()).currentUser;
+          if (!user) return null;
+          const s = await gd(fd(getFirestore(getApp()), 'profiles', user.uid));
+          return s.exists() ? s.data().lastSpinAt || null : null;
+        })();
         const label = document.getElementById('spin-cooldown-label');
         if (label) {
-          if (!last) { label.textContent = 'Ready!'; label.style.color = '#22c55e'; }
+          if (!lastSnap) { label.textContent = '✨ Ready!'; label.style.color = '#22c55e'; }
           else {
-            const next = new Date(last).getTime() + 3600000;
-            const diff = next - Date.now();
-            if (diff <= 0) { label.textContent = 'Ready!'; label.style.color = '#22c55e'; }
+            const diff = new Date(lastSnap).getTime() + 3600000 - Date.now();
+            if (diff <= 0) { label.textContent = '✨ Ready!'; label.style.color = '#22c55e'; }
             else {
-              const m = Math.floor(diff / 60000); const s = Math.floor((diff % 60000) / 1000);
-              label.textContent = `${m}m ${s}s`; label.style.color = '#6b7280';
+              const m = Math.floor(diff/60000), s = Math.floor((diff%60000)/1000);
+              label.textContent = m+'m '+s+'s'; label.style.color = '#6b7280';
             }
           }
         }
@@ -1491,34 +1496,6 @@ export function initAuthUI(onUserChange) {
             style="flex:1;padding:9px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;outline:none;">
           <button id="mod-gift-btn" style="padding:9px 16px;background:#f59e0b;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;">🎁 Gift</button>
         </div>
-      </div>
-
-      <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:16px 0;">
-      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🔐 Game Unlock Pricing</div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <select id="mod-price-game-select" style="padding:9px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;color:#111827;background:#fff;outline:none;cursor:pointer;">
-          <option value="">Select a game...</option>
-        </select>
-        <div id="mod-price-current" style="font-size:12px;color:#6b7280;padding:8px 12px;background:#f9fafb;border-radius:8px;border:1px solid rgba(0,0,0,0.07);display:none;"></div>
-        <div style="display:flex;gap:8px;">
-          <div style="flex:1;">
-            <label style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:3px;">Price (pts)</label>
-            <input id="mod-price-amount" type="number" placeholder="0 = free" min="0" max="99999"
-              style="width:100%;padding:8px 10px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
-          </div>
-          <div style="flex:1;">
-            <label style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:3px;">Discount %</label>
-            <input id="mod-price-discount" type="number" placeholder="0–100" min="0" max="100"
-              style="width:100%;padding:8px 10px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
-          </div>
-        </div>
-        <div id="mod-price-preview" style="font-size:12px;color:#22c55e;font-weight:700;display:none;text-align:center;padding:6px;background:rgba(34,197,94,0.08);border-radius:8px;"></div>
-        <div style="display:flex;gap:8px;">
-          <input id="mod-price-expiry" type="datetime-local"
-            style="flex:1;padding:8px 10px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;font-size:12px;outline:none;color:#6b7280;">
-          <button id="mod-price-set-btn" style="padding:8px 14px;background:#3a7dff;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:12px;">Set Price</button>
-        </div>
-        <div style="font-size:10px;color:#9ca3af;">Discount expiry is optional. Leave blank for permanent discount.</div>
       </div>
 
       <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:16px 0;">
@@ -1769,78 +1746,6 @@ export function initAuthUI(onUserChange) {
       });
     }
 
-    // Populate pricing game select
-    const priceGameSelect = document.getElementById('mod-price-game-select');
-    if (priceGameSelect && window._FLUX_GAMES) {
-      priceGameSelect.innerHTML = '<option value="">Select a game...</option>';
-      window._FLUX_GAMES.forEach(g => {
-        const opt = document.createElement('option');
-        opt.value = g.id; opt.textContent = g.title;
-        priceGameSelect.appendChild(opt);
-      });
-    }
-
-    // Load current pricing and show on game select
-    try {
-      const pricingSnap = await getDoc(doc(db, 'stats', 'gamePricing'));
-      const pricing = pricingSnap.exists() ? pricingSnap.data() : {};
-      priceGameSelect?.addEventListener('change', () => {
-        const id = priceGameSelect.value;
-        const currentDiv = document.getElementById('mod-price-current');
-        const preview = document.getElementById('mod-price-preview');
-        if (!id) { currentDiv.style.display = 'none'; preview.style.display = 'none'; return; }
-        const p = pricing[id] || { price: 0, discount: 0 };
-        const discounted = p.discount > 0 ? Math.round(p.price * (1 - p.discount / 100)) : p.price;
-        currentDiv.style.display = 'block';
-        currentDiv.innerHTML = p.price === 0
-          ? '🆓 Currently free'
-          : p.discount > 0
-            ? `🏷️ Currently: <s>${p.price} pts</s> → <strong>${discounted} pts</strong> (${p.discount}% off)`
-            : `💰 Currently: ${p.price} pts`;
-        document.getElementById('mod-price-amount').value = p.price || '';
-        document.getElementById('mod-price-discount').value = p.discount || '';
-        preview.style.display = 'none';
-      });
-    } catch {}
-
-    // Live discount preview
-    const updatePricePreview = () => {
-      const price = parseInt(document.getElementById('mod-price-amount')?.value) || 0;
-      const discount = parseInt(document.getElementById('mod-price-discount')?.value) || 0;
-      const preview = document.getElementById('mod-price-preview');
-      if (!preview) return;
-      if (price === 0) { preview.textContent = '🆓 This game will be free'; preview.style.display = 'block'; return; }
-      if (discount > 0 && discount <= 100) {
-        const discounted = Math.round(price * (1 - discount / 100));
-        preview.textContent = `🏷️ Was ${price} pts → Now ${discounted} pts (${discount}% off)`;
-        preview.style.display = 'block';
-      } else {
-        preview.textContent = `💰 ${price} pts to unlock`;
-        preview.style.display = 'block';
-      }
-    };
-    document.getElementById('mod-price-amount')?.addEventListener('input', updatePricePreview);
-    document.getElementById('mod-price-discount')?.addEventListener('input', updatePricePreview);
-
-    // Set price button
-    document.getElementById('mod-price-set-btn')?.addEventListener('click', async () => {
-      const gameId = priceGameSelect?.value;
-      const price = parseInt(document.getElementById('mod-price-amount')?.value) || 0;
-      const discount = parseInt(document.getElementById('mod-price-discount')?.value) || 0;
-      const expiry = document.getElementById('mod-price-expiry')?.value || null;
-      const msg = document.getElementById('mod-msg');
-      if (!gameId) { msg.style.color='#ef4444'; msg.textContent='Select a game first.'; msg.style.display='block'; setTimeout(()=>msg.style.display='none',2000); return; }
-      const result = await setGamePrice(gameId, price, discount, expiry ? new Date(expiry).toISOString() : null);
-      msg.style.color = result.ok ? '#22c55e' : '#ef4444';
-      msg.textContent = result.ok ? `✓ Price set for ${window._FLUX_GAMES?.find(g=>g.id===gameId)?.title || gameId}!` : result.error;
-      msg.style.display = 'block';
-      setTimeout(() => msg.style.display = 'none', 3000);
-      // Update window pricing cache
-      if (result.ok && typeof window._fluxGamePricing === 'object') {
-        window._fluxGamePricing[gameId] = { price, discount, discountExpiry: expiry };
-      }
-    });
-
     // Load device requests
     try {
       const { getDocs, collection: col, query, where, orderBy, updateDoc, doc: docRef } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
@@ -1965,6 +1870,7 @@ export function initAuthUI(onUserChange) {
         if (!profile) {
           initProfileSetup((p) => {
             if (p && name) name.textContent = p.displayName || p.username;
+            setTimeout(() => { if (typeof window.startFluxTutorial === 'function') window.startFluxTutorial({ isNew: true }); }, 800);
           });
         } else {
           if (name) name.textContent = profile.displayName || profile.username || user.displayName || user.email;
@@ -1974,6 +1880,7 @@ export function initAuthUI(onUserChange) {
           if (user.photoURL && user.photoURL !== profile.avatarURL) {
             updateDoc(doc(db, 'profiles', user.uid), { avatarURL: user.photoURL }).catch(() => {});
           }
+          setTimeout(() => { if (typeof window.startFluxTutorial === 'function') window.startFluxTutorial({ isNew: false }); }, 1200);
         }
         // Init notifications for signed-in users
         initNotifications();
@@ -2386,26 +2293,16 @@ export function initJumpscare() {
     } catch {}
 
     function triggerJumpscare() {
-      // Admin sees a success toast instead
-      if (auth.currentUser?.uid === 'zEy6TO5ligf2um4rssIZs9C9X7f2') {
-        let container = document.getElementById('toast-container');
-        if (!container) { container = document.createElement('div'); container.id = 'toast-container'; container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none;'; document.body.appendChild(container); }
-        const t = document.createElement('div');
-        t.style.cssText = 'background:#111827;border-radius:12px;padding:12px 16px;box-shadow:0 8px 30px rgba(0,0,0,0.3);border-left:4px solid #22c55e;font-size:13px;font-weight:600;color:#22c55e;pointer-events:all;opacity:0;transform:translateY(8px);transition:all 0.25s ease;';
-        t.textContent = '✅ Jumpscare deployed to all users!';
-        container.appendChild(t);
-        requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
-        setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; setTimeout(() => t.remove(), 250); }, 3000);
-        return;
-      }
-
+      const isAdmin = auth.currentUser?.uid === 'zEy6TO5ligf2um4rssIZs9C9X7f2';
       if (document.getElementById('server-status-overlay')) return;
 
       const overlay = document.createElement('div');
       overlay.id = 'jumpscare-overlay';
       overlay.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#000;display:flex;align-items:center;justify-content:center;cursor:pointer;';
-      overlay.innerHTML = `<img src="assets/jumpscare.png" alt="" style="max-width:100vw;max-height:100vh;object-fit:contain;animation:jumpscare-pop 0.1s ease-out;">`;
-
+      overlay.innerHTML = `
+        <img src="assets/jumpscare.png" alt="" style="max-width:100vw;max-height:100vh;object-fit:contain;animation:jumpscare-pop 0.1s ease-out;">
+        ${isAdmin ? '<div style="position:absolute;top:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);color:#22c55e;font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px;white-space:nowrap;pointer-events:none;">👁 Admin Preview</div>' : ''}
+      `;
       const style = document.createElement('style');
       style.textContent = `@keyframes jumpscare-pop { 0%{transform:scale(0.5);opacity:0} 100%{transform:scale(1);opacity:1} }`;
       document.head.appendChild(style);
@@ -2425,7 +2322,18 @@ export function initJumpscare() {
 
       const dismiss = () => { overlay.remove(); style.remove(); };
       overlay.addEventListener('click', dismiss);
-      setTimeout(dismiss, 2500);
+      setTimeout(dismiss, isAdmin ? 2000 : 2500);
+
+      if (isAdmin) {
+        let container = document.getElementById('toast-container');
+        if (!container) { container = document.createElement('div'); container.id = 'toast-container'; container.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:999999;display:flex;flex-direction:column;gap:8px;pointer-events:none;'; document.body.appendChild(container); }
+        const t = document.createElement('div');
+        t.style.cssText = 'background:#111827;border-radius:12px;padding:12px 16px;box-shadow:0 8px 30px rgba(0,0,0,0.3);border-left:4px solid #22c55e;font-size:13px;font-weight:600;color:#22c55e;pointer-events:all;opacity:0;transform:translateY(8px);transition:all 0.25s ease;';
+        t.textContent = '✅ Jumpscare deployed to all users!';
+        container.appendChild(t);
+        requestAnimationFrame(() => { t.style.opacity = '1'; t.style.transform = 'translateY(0)'; });
+        setTimeout(() => { t.style.opacity = '0'; t.style.transform = 'translateY(8px)'; setTimeout(() => t.remove(), 250); }, 3000);
+      }
     }
 
     onSnapshot(jumpscareRef, (snap) => {
@@ -2450,6 +2358,17 @@ export function initJumpscare() {
   });
 }
 
+/* ===================== FIRESTORE HEALTH CHECK ===================== */
+export async function checkFirestoreHealth() {
+  try {
+    const start = Date.now();
+    await getDoc(doc(db, 'stats', 'health_ping'));
+    return { ok: true, ms: Date.now() - start };
+  } catch (err) {
+    return { ok: false, error: err.message };
+  }
+}
+
 /* ===================== GAME DETAIL & AI DESCRIPTION ===================== */
 export async function fetchGameDetail(gameId) {
   try {
@@ -2459,13 +2378,10 @@ export async function fetchGameDetail(gameId) {
 }
 
 export async function getAiGameDescription(game) {
-  // Return cached version if exists
   try {
     const snap = await getDoc(doc(db, 'gamestats', game.id));
     if (snap.exists() && snap.data().aiDesc) return snap.data().aiDesc;
   } catch {}
-
-  // Generate via Claude API
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -2473,38 +2389,30 @@ export async function getAiGameDescription(game) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
-        messages: [{
-          role: 'user',
-          content: `Write a 3-4 sentence engaging game description for "${game.title}" for a browser game portal. The short description is: "${game.desc}". Write in second person ("you"), be specific about gameplay mechanics, and make it exciting. Return only the description text, no quotes or extra formatting.`
-        }]
+        messages: [{ role: 'user', content: `Write a 3-4 sentence engaging game description for "${game.title}" for a browser game portal. The short description is: "${game.desc}". Write in second person ("you"), be specific about gameplay mechanics, and make it exciting. Return only the description text, no quotes or extra formatting.` }]
       })
     });
     if (!res.ok) return game.desc;
     const data = await res.json();
     const aiDesc = data.content?.[0]?.text?.trim() || game.desc;
-    // Cache to Firestore
-    try {
-      await setDoc(doc(db, 'gamestats', game.id), { aiDesc }, { merge: true });
-    } catch {}
+    try { await setDoc(doc(db, 'gamestats', game.id), { aiDesc }, { merge: true }); } catch {}
     return aiDesc;
   } catch { return game.desc; }
 }
 
-/* ===================== REVIEWS & COMMENTS ===================== */
+/* ===================== REVIEWS ===================== */
 export async function getGameReviews(gameId) {
   try {
     const { collection: col, query: q, orderBy: ob, getDocs: gd, limit: lim } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const snap = await gd(q(col(db, 'gamestats', gameId, 'reviews'), ob('createdAt', 'desc'), lim(50)));
-    const reviews = await Promise.all(snap.docs.map(async d => {
+    return await Promise.all(snap.docs.map(async d => {
       const data = { id: d.id, ...d.data() };
-      // Load comments for this review
       try {
         const cSnap = await gd(q(col(db, 'gamestats', gameId, 'reviews', d.id, 'comments'), ob('createdAt', 'asc'), lim(20)));
         data.comments = cSnap.docs.map(c => ({ id: c.id, ...c.data() }));
       } catch { data.comments = []; }
       return data;
     }));
-    return reviews;
   } catch { return []; }
 }
 
@@ -2514,12 +2422,10 @@ export async function submitReview(gameId, gameTitle, rating, comment) {
   if (rating < 1 || rating > 5) return { ok: false, error: 'Rating must be 1–5.' };
   if (comment && comment.length > 500) return { ok: false, error: 'Review too long (max 500 chars).' };
   try {
-    const { runTransaction, collection: col, getDocs: gd, query: q, where: w } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const { runTransaction, collection: col, getDocs: gd, query: q, where: w, addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const profile = await getProfile(user.uid);
     const reviewsCol = col(db, 'gamestats', gameId, 'reviews');
     const gameRef = doc(db, 'gamestats', gameId);
-
-    // Check if user already reviewed — update if so
     const existing = await gd(q(reviewsCol, w('uid', '==', user.uid)));
     if (!existing.empty) {
       const reviewDoc = existing.docs[0];
@@ -2532,25 +2438,11 @@ export async function submitReview(gameId, gameTitle, rating, comment) {
       });
       return { ok: true };
     }
-
     await runTransaction(db, async tx => {
-      const { addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
       const gSnap = await tx.get(gameRef);
-      const newTotal = (gSnap.data()?.ratingTotal || 0) + rating;
-      const newCount = (gSnap.data()?.ratingCount || 0) + 1;
-      tx.set(gameRef, { ratingTotal: newTotal, ratingCount: newCount, title: gameTitle }, { merge: true });
+      tx.set(gameRef, { ratingTotal: (gSnap.data()?.ratingTotal||0)+rating, ratingCount: (gSnap.data()?.ratingCount||0)+1, title: gameTitle }, { merge: true });
     });
-    const { addDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    await addDoc(reviewsCol, {
-      uid: user.uid,
-      username: profile?.username || 'Anonymous',
-      displayName: profile?.displayName || user.displayName || 'Anonymous',
-      avatarURL: profile?.avatarURL || user.photoURL || '',
-      rating,
-      comment: comment || '',
-      likes: [],
-      createdAt: new Date().toISOString(),
-    });
+    await addDoc(reviewsCol, { uid: user.uid, username: profile?.username||'Anonymous', displayName: profile?.displayName||user.displayName||'Anonymous', avatarURL: profile?.avatarURL||user.photoURL||'', rating, comment: comment||'', likes: [], createdAt: new Date().toISOString() });
     return { ok: true };
   } catch (e) { return { ok: false, error: e.message }; }
 }
@@ -2558,36 +2450,27 @@ export async function submitReview(gameId, gameTitle, rating, comment) {
 export async function addReviewComment(gameId, reviewId, comment) {
   const user = auth.currentUser;
   if (!user || user.isAnonymous) return { ok: false, error: 'Sign in to comment.' };
-  if (!comment?.trim()) return { ok: false, error: 'Comment cannot be empty.' };
-  if (comment.length > 300) return { ok: false, error: 'Comment too long (max 300 chars).' };
+  if (!comment?.trim() || comment.length > 300) return { ok: false, error: 'Invalid comment.' };
   try {
     const { addDoc, collection: col } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const profile = await getProfile(user.uid);
-    await addDoc(col(db, 'gamestats', gameId, 'reviews', reviewId, 'comments'), {
-      uid: user.uid,
-      username: profile?.username || 'Anonymous',
-      displayName: profile?.displayName || user.displayName || 'Anonymous',
-      avatarURL: profile?.avatarURL || user.photoURL || '',
-      comment: comment.trim(),
-      createdAt: new Date().toISOString(),
-    });
+    await addDoc(col(db, 'gamestats', gameId, 'reviews', reviewId, 'comments'), { uid: user.uid, username: profile?.username||'Anonymous', displayName: profile?.displayName||user.displayName||'Anonymous', avatarURL: profile?.avatarURL||user.photoURL||'', comment: comment.trim(), createdAt: new Date().toISOString() });
     return { ok: true };
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
 export async function likeReview(gameId, reviewId) {
   const user = auth.currentUser;
-  if (!user || user.isAnonymous) return { ok: false, error: 'Sign in to like.' };
+  if (!user || user.isAnonymous) return { ok: false };
   try {
     const { arrayUnion, arrayRemove } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const reviewRef = doc(db, 'gamestats', gameId, 'reviews', reviewId);
-    const snap = await getDoc(reviewRef);
+    const ref = doc(db, 'gamestats', gameId, 'reviews', reviewId);
+    const snap = await getDoc(ref);
     if (!snap.exists()) return { ok: false };
-    const likes = snap.data().likes || [];
-    const alreadyLiked = likes.includes(user.uid);
-    await updateDoc(reviewRef, { likes: alreadyLiked ? arrayRemove(user.uid) : arrayUnion(user.uid) });
-    return { ok: true, liked: !alreadyLiked };
-  } catch (e) { return { ok: false }; }
+    const liked = (snap.data().likes||[]).includes(user.uid);
+    await updateDoc(ref, { likes: liked ? arrayRemove(user.uid) : arrayUnion(user.uid) });
+    return { ok: true, liked: !liked };
+  } catch { return { ok: false }; }
 }
 
 export async function deleteReview(gameId, reviewId) {
@@ -2595,39 +2478,31 @@ export async function deleteReview(gameId, reviewId) {
   if (!user) return;
   try {
     const { deleteDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-    const reviewRef = doc(db, 'gamestats', gameId, 'reviews', reviewId);
-    const snap = await getDoc(reviewRef);
+    const ref = doc(db, 'gamestats', gameId, 'reviews', reviewId);
+    const snap = await getDoc(ref);
     if (!snap.exists()) return;
-    // Only owner of review or admin can delete
     if (snap.data().uid !== user.uid && user.uid !== 'zEy6TO5ligf2um4rssIZs9C9X7f2') return;
-    await deleteDoc(reviewRef);
-    // Update rating totals
-    const rating = snap.data().rating || 0;
-    const gameRef = doc(db, 'gamestats', gameId);
-    const gSnap = await getDoc(gameRef);
+    await deleteDoc(ref);
+    const gSnap = await getDoc(doc(db, 'gamestats', gameId));
     if (gSnap.exists()) {
-      const newTotal = Math.max(0, (gSnap.data().ratingTotal || 0) - rating);
-      const newCount = Math.max(0, (gSnap.data().ratingCount || 0) - 1);
-      await updateDoc(gameRef, { ratingTotal: newTotal, ratingCount: newCount });
+      const r = snap.data().rating||0;
+      await updateDoc(doc(db, 'gamestats', gameId), { ratingTotal: Math.max(0,(gSnap.data().ratingTotal||0)-r), ratingCount: Math.max(0,(gSnap.data().ratingCount||0)-1) });
     }
   } catch {}
 }
 
 /* ===================== GAME UNLOCK SYSTEM ===================== */
 export async function fetchGamePricing() {
-  try {
-    const snap = await getDoc(doc(db, 'stats', 'gamePricing'));
-    return snap.exists() ? snap.data() : {};
-  } catch { return {}; }
+  try { const snap = await getDoc(doc(db, 'stats', 'gamePricing')); return snap.exists() ? snap.data() : {}; } catch { return {}; }
 }
 
-export async function setGamePrice(gameId, price, discount = 0, discountExpiry = null) {
+export async function setGamePrice(gameId, price, discount=0, discountExpiry=null) {
   const user = auth.currentUser;
   if (!user || user.uid !== OWNER_UID) return { ok: false, error: 'Admin only.' };
   try {
     const snap = await getDoc(doc(db, 'stats', 'gamePricing'));
     const current = snap.exists() ? snap.data() : {};
-    current[gameId] = { price: parseInt(price) || 0, discount: parseInt(discount) || 0, discountExpiry: discountExpiry || null };
+    current[gameId] = { price: parseInt(price)||0, discount: parseInt(discount)||0, discountExpiry: discountExpiry||null };
     await setDoc(doc(db, 'stats', 'gamePricing'), current);
     return { ok: true };
   } catch (e) { return { ok: false, error: e.message }; }
@@ -2636,10 +2511,7 @@ export async function setGamePrice(gameId, price, discount = 0, discountExpiry =
 export async function getUnlockedGames() {
   const user = auth.currentUser;
   if (!user || user.isAnonymous) return [];
-  try {
-    const snap = await getDoc(doc(db, 'profiles', user.uid));
-    return snap.exists() ? (snap.data().unlockedGames || []) : [];
-  } catch { return []; }
+  try { const snap = await getDoc(doc(db, 'profiles', user.uid)); return snap.exists() ? (snap.data().unlockedGames||[]) : []; } catch { return []; }
 }
 
 export async function unlockGame(gameId, cost) {
@@ -2648,41 +2520,36 @@ export async function unlockGame(gameId, cost) {
   try {
     const { runTransaction } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const profileRef = doc(db, 'profiles', user.uid);
-    let result = { ok: false };
+    let result = {};
     await runTransaction(db, async tx => {
       const snap = await tx.get(profileRef);
       if (!snap.exists()) { result = { ok: false, error: 'Profile not found.' }; return; }
       const data = snap.data();
-      const points = data.points || 0;
-      const unlocked = data.unlockedGames || [];
-      if (unlocked.includes(gameId)) { result = { ok: true }; return; } // already unlocked
-      if (points < cost) { result = { ok: false, error: `Not enough points. You need ${cost - points} more.` }; return; }
-      tx.update(profileRef, { points: points - cost, unlockedGames: [...unlocked, gameId] });
-      result = { ok: true, newBalance: points - cost };
+      const points = data.points||0, unlocked = data.unlockedGames||[];
+      if (unlocked.includes(gameId)) { result = { ok: true }; return; }
+      if (points < cost) { result = { ok: false, error: `Need ${cost-points} more points.` }; return; }
+      tx.update(profileRef, { points: points-cost, unlockedGames: [...unlocked, gameId] });
+      result = { ok: true, newBalance: points-cost };
     });
     return result;
   } catch (e) { return { ok: false, error: e.message }; }
 }
 
 /* ===================== SPIN WHEEL ===================== */
-const SPIN_SEGMENTS = [
+export const SPIN_SEGMENTS = [
   { label: '10 pts',  points: 10,  weight: 40, color: '#6b7280' },
   { label: '25 pts',  points: 25,  weight: 25, color: '#3a7dff' },
   { label: '50 pts',  points: 50,  weight: 15, color: '#22c55e' },
   { label: '100 pts', points: 100, weight: 10, color: '#f59e0b' },
   { label: '250 pts', points: 250, weight: 7,  color: '#8b5cf6' },
   { label: 'Try Again', points: 0, weight: 2,  color: '#ef4444' },
-  { label: '🎰 500 pts', points: 500, weight: 1, color: '#ec4899' },
+  { label: '🎰 500!', points: 500, weight: 1,  color: '#ec4899' },
 ];
-export { SPIN_SEGMENTS };
 
 export async function getLastSpin() {
   const user = auth.currentUser;
   if (!user || user.isAnonymous) return null;
-  try {
-    const snap = await getDoc(doc(db, 'profiles', user.uid));
-    return snap.exists() ? snap.data().lastSpinAt || null : null;
-  } catch { return null; }
+  try { const snap = await getDoc(doc(db, 'profiles', user.uid)); return snap.exists() ? snap.data().lastSpinAt||null : null; } catch { return null; }
 }
 
 export async function spinWheel() {
@@ -2695,25 +2562,18 @@ export async function spinWheel() {
     await runTransaction(db, async tx => {
       const snap = await tx.get(profileRef);
       if (!snap.exists()) { result = { ok: false, error: 'No profile found.' }; return; }
-      const lastSpin = snap.data().lastSpinAt || null;
-      const now = Date.now();
-      if (lastSpin && now - new Date(lastSpin).getTime() < 3600000) {
-        const nextSpin = new Date(new Date(lastSpin).getTime() + 3600000);
-        result = { ok: false, error: 'cooldown', nextSpin: nextSpin.toISOString() }; return;
+      const lastSpin = snap.data().lastSpinAt||null;
+      if (lastSpin && Date.now() - new Date(lastSpin).getTime() < 3600000) {
+        result = { ok: false, error: 'cooldown', nextSpin: new Date(new Date(lastSpin).getTime()+3600000).toISOString() }; return;
       }
-      // Pick segment by weight
-      const total = SPIN_SEGMENTS.reduce((s, seg) => s + seg.weight, 0);
-      let rand = Math.random() * total;
-      let chosen = SPIN_SEGMENTS[0];
+      const total = SPIN_SEGMENTS.reduce((s,seg)=>s+seg.weight,0);
+      let rand = Math.random()*total, chosen = SPIN_SEGMENTS[0];
       for (const seg of SPIN_SEGMENTS) { rand -= seg.weight; if (rand <= 0) { chosen = seg; break; } }
-      const currentPoints = snap.data().points || 0;
+      const pts = snap.data().points||0;
       const updates = { lastSpinAt: new Date().toISOString() };
-      if (chosen.points > 0) {
-        updates.points = currentPoints + chosen.points;
-        updates.totalPointsEarned = (snap.data().totalPointsEarned || 0) + chosen.points;
-      }
+      if (chosen.points > 0) { updates.points = pts+chosen.points; updates.totalPointsEarned = (snap.data().totalPointsEarned||0)+chosen.points; }
       tx.update(profileRef, updates);
-      result = { ok: true, segment: chosen, newBalance: currentPoints + chosen.points };
+      result = { ok: true, segment: chosen, newBalance: pts+chosen.points };
     });
     return result;
   } catch (e) { return { ok: false, error: e.message }; }
@@ -2723,56 +2583,29 @@ export async function spinWheel() {
 export async function giftPointsToUser(targetUsername, amount) {
   const user = auth.currentUser;
   if (!user || user.isAnonymous) return { ok: false, error: 'Sign in to gift points.' };
-  if (!amount || amount < 1 || amount > 10000) return { ok: false, error: 'Amount must be between 1 and 10,000.' };
-
+  if (!amount || amount < 1 || amount > 10000) return { ok: false, error: 'Amount must be 1–10,000.' };
   try {
     const { runTransaction } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
     const target = await getProfileByUsername(targetUsername);
     if (!target) return { ok: false, error: `User @${targetUsername} not found.` };
-    if (target.uid === user.uid) return { ok: false, error: 'You cannot gift points to yourself.' };
-
-    const myRef = doc(db, 'profiles', user.uid);
-    const theirRef = doc(db, 'profiles', target.uid);
+    if (target.uid === user.uid) return { ok: false, error: 'Cannot gift yourself.' };
+    const myRef = doc(db, 'profiles', user.uid), theirRef = doc(db, 'profiles', target.uid);
     let result = {};
-
     await runTransaction(db, async tx => {
-      const mySnap = await tx.get(myRef);
-      const theirSnap = await tx.get(theirRef);
-      if (!mySnap.exists()) { result = { ok: false, error: 'Your profile not found.' }; return; }
-      if (!theirSnap.exists()) { result = { ok: false, error: 'Recipient profile not found.' }; return; }
-
-      const myPoints = mySnap.data().points || 0;
-      const dailyGifted = mySnap.data().dailyGiftedPoints || 0;
-      const lastGiftDate = mySnap.data().lastGiftDate || '';
-      const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Stockholm' });
-      const giftedToday = lastGiftDate === today ? dailyGifted : 0;
-      const DAILY_CAP = 500;
-
-      if (myPoints < amount) { result = { ok: false, error: `Not enough points. You have ${myPoints} pts.` }; return; }
-      if (giftedToday + amount > DAILY_CAP) {
-        result = { ok: false, error: `Daily gift cap is ${DAILY_CAP} pts. You've already gifted ${giftedToday} pts today.` }; return;
-      }
-
-      tx.update(myRef, {
-        points: myPoints - amount,
-        dailyGiftedPoints: giftedToday + amount,
-        lastGiftDate: today,
-      });
-      tx.update(theirRef, {
-        points: (theirSnap.data().points || 0) + amount,
-        totalPointsEarned: (theirSnap.data().totalPointsEarned || 0) + amount,
-      });
-      result = { ok: true, newBalance: myPoints - amount };
+      const [my, their] = await Promise.all([tx.get(myRef), tx.get(theirRef)]);
+      if (!my.exists()) { result = { ok: false, error: 'Your profile not found.' }; return; }
+      const pts = my.data().points||0;
+      const today = new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Stockholm'});
+      const gifted = my.data().lastGiftDate===today ? (my.data().dailyGiftedPoints||0) : 0;
+      if (pts < amount) { result = { ok: false, error: `Not enough points. You have ${pts}.` }; return; }
+      if (gifted+amount > 500) { result = { ok: false, error: `Daily cap 500 pts. Already gifted ${gifted} today.` }; return; }
+      tx.update(myRef, { points: pts-amount, dailyGiftedPoints: gifted+amount, lastGiftDate: today });
+      tx.update(theirRef, { points: (their.data().points||0)+amount, totalPointsEarned: (their.data().totalPointsEarned||0)+amount });
+      result = { ok: true, newBalance: pts-amount };
     });
-
     if (result.ok) {
-      const myProfile = await getProfile(user.uid);
-      await sendNotification(target.uid, {
-        type: 'points',
-        title: `🎁 @${myProfile?.username || 'Someone'} gifted you ${amount} points!`,
-        body: 'Check your profile to see your new balance.',
-        link: 'profile.html',
-      });
+      const me = await getProfile(user.uid);
+      await sendNotification(target.uid, { type:'points', title:`🎁 @${me?.username||'Someone'} gifted you ${amount} pts!`, body:'Check your profile balance.', link:'profile.html' });
     }
     return result;
   } catch (e) { return { ok: false, error: e.message }; }

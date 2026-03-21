@@ -1313,6 +1313,7 @@ export function initAuthUI(onUserChange) {
   });
 
   userDisplay.addEventListener('click', async (e) => {
+    e.stopPropagation();
     const dd = document.getElementById('profile-dropdown');
     const isOpening = dd.style.display === 'none';
     dd.style.display = isOpening ? 'block' : 'none';
@@ -1341,7 +1342,6 @@ export function initAuthUI(onUserChange) {
         }
       } catch {}
     }
-    e.stopPropagation();
   });
   document.addEventListener('click', () => {
     const dd = document.getElementById('profile-dropdown');

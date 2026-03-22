@@ -1349,7 +1349,7 @@ export function initAuthUI(onUserChange) {
     if (dd) dd.style.display = 'none';
   });
 
-  document.getElementById('change-password-btn').addEventListener('click', (e) => {
+  document.getElementById('change-password-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
     document.getElementById('profile-dropdown').style.display = 'none';
     pwModal.style.display = 'flex';
@@ -2121,7 +2121,7 @@ export function initAuthUI(onUserChange) {
         profilePlaceholder.textContent = '?';
         profileAvatarLarge.style.display = 'none';
         profilePlaceholder.style.display = 'flex';
-        document.getElementById('change-password-btn').style.display = 'none';
+        document.getElementById('change-password-btn')?.style && (document.getElementById('change-password-btn').style.display = 'none');
       } else {
         const displayName = user.displayName || user.email;
         name.textContent = displayName;
@@ -2147,7 +2147,7 @@ export function initAuthUI(onUserChange) {
           profileAvatarLarge.style.display = 'none';
           profilePlaceholder.style.display = 'flex';
         }
-        document.getElementById('change-password-btn').style.display = 'flex';
+        document.getElementById('change-password-btn')?.style && (document.getElementById('change-password-btn').style.display = 'flex');
       }
     } else {
       authBtn.style.display = '';

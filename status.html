@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <title>Flux Status</title>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css">
@@ -260,7 +261,7 @@
       renderServices(snap.exists() ? snap.data().services : null);
     });
 
-    // Refresh button — run a new health check
+    // Refresh button
     document.getElementById('refresh-btn').addEventListener('click', async () => {
       const icon = document.getElementById('refresh-icon');
       icon.classList.add('spinning');
@@ -268,12 +269,14 @@
       icon.classList.remove('spinning');
     });
 
-    // Auto health check on page load (throttled — once per 5 min via localStorage)
-    const lastCheck = parseInt(localStorage.getItem('flux_last_health_check') || '0');
-    if (Date.now() - lastCheck > 5 * 60 * 1000) {
-      localStorage.setItem('flux_last_health_check', Date.now().toString());
-      autoCheckServiceHealth();
-    }
+    // Always run a fresh health check on load — show existing data first, then update
+    (async () => {
+      try {
+        const snap = await getDoc(doc(db, 'stats', 'serviceHealth'));
+        if (snap.exists()) renderServices(snap.data().services);
+      } catch {}
+      await autoCheckServiceHealth();
+    })();
   </script>
 </body>
 </html>

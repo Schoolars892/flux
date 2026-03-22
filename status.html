@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Flux Status</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script>
+    (function() {
+      try {
+        if (localStorage.getItem('flux_dark') === '1' ||
+            (localStorage.getItem('flux_dark') === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+        if (localStorage.getItem('flux_beta') === '1') document.documentElement.classList.add('beta');
+      } catch(e) {}
+    })();
+  </script>
+  <style>
+    .status-page { max-width: 720px; margin: 0 auto; padding: 32px 20px 80px; }
+    .status-hero { text-align: center; padding: 48px 20px 36px; }
+    .status-globe { font-size: 56px; margin-bottom: 16px; display: block; }
+    .status-headline { font-family: 'Bebas Neue', sans-serif; font-size: 42px; margin: 0 0 8px; color: var(--text); }
+    .status-sub { font-size: 14px; color: var(--muted); margin: 0 0 20px; }
+    .overall-pill {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 22px; border-radius: 30px; font-size: 14px; font-weight: 700;
+      margin-bottom: 8px; transition: all 0.3s;
+    }
+    .overall-pill.operational { background: rgba(34,197,94,0.12); color: #16a34a; border: 1px solid rgba(34,197,94,0.25); }
+    .overall-pill.degraded   { background: rgba(245,158,11,0.12); color: #92400e; border: 1px solid rgba(245,158,11,0.25); }
+    .overall-pill.outage     { background: rgba(239,68,68,0.1);   color: #991b1b; border: 1px solid rgba(239,68,68,0.2); }
+    .status-updated { font-size: 12px; color: var(--muted); }
+
+    .status-section-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin: 32px 0 12px; }
+    .status-card { background: var(--panel); border: 1px solid var(--glass-border); border-radius: 16px; overflow: hidden; margin-bottom: 10px; }
+    .status-row { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; border-bottom: 1px solid var(--glass-border); transition: background 0.15s; }
+    .status-row:last-child { border-bottom: none; }
+    .status-row-icon { font-size: 24px; flex-shrink: 0; margin-top: 2px; }
+    .status-row-body { flex: 1; min-width: 0; }
+    .status-row-header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+    .status-row-name { font-size: 15px; font-weight: 700; color: var(--text); }
+    .status-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 10px; font-weight: 800; padding: 2px 9px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: 0.5px; flex-shrink: 0;
+    }
+    .status-badge.operational { background: rgba(34,197,94,0.12);  color: #16a34a; }
+    .status-badge.degraded    { background: rgba(245,158,11,0.12); color: #92400e; }
+    .status-badge.outage      { background: rgba(239,68,68,0.1);   color: #991b1b; }
+    .status-badge.checking    { background: rgba(107,114,128,0.1); color: #6b7280; }
+    .status-flag-pill {
+      display: inline-flex; align-items: center; gap: 3px;
+      background: rgba(0,0,0,0.05); color: var(--muted);
+      font-size: 9px; font-weight: 800; padding: 1px 7px; border-radius: 20px;
+      text-transform: uppercase; letter-spacing: 0.4px;
+    }
+    html.dark .status-flag-pill { background: rgba(255,255,255,0.07); }
+    .status-row-desc { font-size: 13px; color: var(--muted); line-height: 1.6; margin-top: 4px; }
+    .status-row-time { font-size: 11px; color: var(--muted); margin-top: 6px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; margin-top: 6px; }
+    .status-dot.operational { background: #22c55e; box-shadow: 0 0 6px rgba(34,197,94,0.5); animation: pulse-dot 2s infinite; }
+    .status-dot.degraded    { background: #f59e0b; box-shadow: 0 0 6px rgba(245,158,11,0.5); animation: pulse-dot 2s infinite; }
+    .status-dot.outage      { background: #ef4444; box-shadow: 0 0 6px rgba(239,68,68,0.5); animation: pulse-dot 1.2s infinite; }
+    .status-dot.checking    { background: #9ca3af; }
+
+    /* Incident history */
+    .incident-item { padding: 14px 20px; border-bottom: 1px solid var(--glass-border); }
+    .incident-item:last-child { border-bottom: none; }
+    .incident-title { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .incident-body  { font-size: 13px; color: var(--muted); line-height: 1.6; }
+    .incident-meta  { font-size: 11px; color: var(--muted); margin-top: 6px; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+    /* Refresh button */
+    .refresh-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; background: var(--glass-bg); border: 1px solid var(--glass-border); border-radius: 20px; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+    .refresh-btn:hover { background: rgba(58,125,255,0.07); border-color: rgba(58,125,255,0.3); color: var(--accent); }
+    .spinning { animation: spin 1s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes pulse-dot { 0%,100% { opacity:1; transform:scale(1); } 50% { opacity:0.6; transform:scale(1.3); } }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand"><a href="index.html" class="logo">FLUX</a></div>
+    <nav class="nav">
+      <ul class="nav-list">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="games.html">Games</a></li>
+      </ul>
+    </nav>
+    <div class="right-actions" id="right-actions"></div>
+  </header>
+
+  <main class="status-page">
+    <div class="status-hero">
+      <span class="status-globe">🛰️</span>
+      <h1 class="status-headline">Flux Status</h1>
+      <p class="status-sub">Real-time health monitoring for all Flux services.</p>
+      <div class="overall-pill checking" id="overall-pill">
+        <span id="overall-dot" style="width:8px;height:8px;border-radius:50%;background:#9ca3af;"></span>
+        <span id="overall-text">Checking systems...</span>
+      </div>
+      <div class="status-updated" id="last-updated"></div>
+      <div style="margin-top:14px;">
+        <button class="refresh-btn" id="refresh-btn">
+          <span id="refresh-icon">↻</span> Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- Services -->
+    <div class="status-section-label">Services</div>
+    <div class="status-card" id="services-card">
+      <!-- Filled by JS -->
+      <div style="padding:32px;text-align:center;color:var(--muted);font-size:13px;">Loading service status...</div>
+    </div>
+
+    <!-- Active incidents -->
+    <div class="status-section-label" id="incidents-label" style="display:none;">Active Incidents</div>
+    <div class="status-card" id="incidents-card" style="display:none;"></div>
+
+    <!-- Last checked -->
+    <div style="text-align:center;margin-top:32px;">
+      <p style="font-size:12px;color:var(--muted);">Status checks run automatically. Data is sourced from Firebase Firestore and real-time health probes. <a href="https://status.firebase.google.com" target="_blank" rel="noopener" style="color:var(--accent);">Firebase status ↗</a></p>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initAuthUI, initDarkMode, initPresence, initIncidentBanner, autoCheckServiceHealth } from './firebase-auth.js';
+    import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+    import { getFirestore, doc, getDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+
+    initDarkMode();
+    initAuthUI(() => {});
+    initPresence();
+    initIncidentBanner();
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCHm6nxHzrIGHmWb1W_xDAYwnSoed6oTi4",
+      authDomain: "fluxbynxtcoreee3.firebaseapp.com",
+      projectId: "fluxbynxtcoreee3",
+      storageBucket: "fluxbynxtcoreee3.firebasestorage.app",
+      messagingSenderId: "1003023583985",
+      appId: "1:1003023583985:web:58cec1087f433e2af97750",
+      databaseURL: "https://fluxbynxtcoreee3-default-rtdb.europe-west1.firebasedatabase.app"
+    };
+    const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const SERVICE_META = {
+      firestore:  { name: 'Database (Firestore)', icon: '🔥' },
+      googleAuth: { name: 'Authentication (Google)', icon: '🔐' },
+      website:    { name: 'Website & Interface', icon: '🌐' },
+      games:      { name: 'Games', icon: '🎮' },
+    };
+
+    const STATUS_DOT_COLOR = { operational: '#22c55e', degraded: '#f59e0b', outage: '#ef4444', checking: '#9ca3af' };
+    const STATUS_LABEL = { operational: '✅ Operational', degraded: '⚠️ Degraded', outage: '🔴 Outage', checking: '⏳ Checking' };
+
+    function timeAgo(iso) {
+      if (!iso) return '';
+      const diff = Date.now() - new Date(iso).getTime();
+      const m = Math.floor(diff / 60000);
+      if (m < 1) return 'just now';
+      if (m < 60) return `${m}m ago`;
+      const h = Math.floor(m / 60);
+      if (h < 24) return `${h}h ago`;
+      return `${Math.floor(h / 24)}d ago`;
+    }
+
+    function renderServices(services) {
+      const card = document.getElementById('services-card');
+      const keys = ['firestore', 'googleAuth', 'website', 'games'];
+      const statuses = keys.map(k => services?.[k]?.status || 'checking');
+      const overallStatus = statuses.includes('outage') ? 'outage' : statuses.includes('degraded') ? 'degraded' : statuses.every(s => s === 'operational') ? 'operational' : 'checking';
+
+      // Overall pill
+      const pill = document.getElementById('overall-pill');
+      const dot = document.getElementById('overall-dot');
+      const text = document.getElementById('overall-text');
+      pill.className = `overall-pill ${overallStatus}`;
+      dot.style.background = STATUS_DOT_COLOR[overallStatus];
+      text.textContent = overallStatus === 'operational' ? 'All Systems Operational'
+        : overallStatus === 'degraded' ? 'Partial Service Disruption'
+        : overallStatus === 'outage' ? 'Major Outage Detected'
+        : 'Checking systems...';
+
+      // Updated time
+      const updatedEl = document.getElementById('last-updated');
+      updatedEl.textContent = services ? `Last updated ${timeAgo(Object.values(services).map(s => s.detectedAt).filter(Boolean).sort().pop())}` : '';
+
+      card.innerHTML = keys.map(key => {
+        const svc = services?.[key];
+        const status = svc?.status || 'checking';
+        const meta = SERVICE_META[key];
+        const flagBy = svc?.flaggedBy === 'ai'
+          ? '<span class="status-flag-pill">🤖 Flagged by AI</span>'
+          : svc?.flaggedBy === 'dev'
+          ? '<span class="status-flag-pill">👨‍💻 Flagged by Developer</span>'
+          : '';
+        const desc = svc?.message || (status === 'checking' ? 'Waiting for health check data...' : 'No additional information.');
+        const detectedTime = svc?.detectedAt ? `Detected ${timeAgo(svc.detectedAt)} · ${new Date(svc.detectedAt).toLocaleString('en-GB', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' })}` : '';
+
+        return `
+          <div class="status-row">
+            <span class="status-row-icon">${meta.icon}</span>
+            <div class="status-dot ${status}"></div>
+            <div class="status-row-body">
+              <div class="status-row-header">
+                <span class="status-row-name">${meta.name}</span>
+                <span class="status-badge ${status}">${STATUS_LABEL[status]}</span>
+                ${flagBy}
+              </div>
+              <div class="status-row-desc">${desc}</div>
+              ${detectedTime ? `<div class="status-row-time">${detectedTime}</div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Active incidents section
+      const incidents = keys
+        .filter(k => services?.[k]?.status && services[k].status !== 'operational')
+        .map(k => ({ key: k, ...services[k], ...SERVICE_META[k] }));
+
+      const incLabel = document.getElementById('incidents-label');
+      const incCard  = document.getElementById('incidents-card');
+      if (incidents.length) {
+        incLabel.style.display = 'block';
+        incCard.style.display  = 'block';
+        incCard.innerHTML = incidents.map(inc => {
+          const flagBy = inc.flaggedBy === 'ai'
+            ? '<span class="status-flag-pill">🤖 Flagged by AI</span>'
+            : '<span class="status-flag-pill">👨‍💻 Flagged by Developer</span>';
+          const sLabel = inc.status === 'outage' ? 'Outage' : 'Degraded Performance';
+          return `
+            <div class="incident-item">
+              <div class="incident-title">${inc.icon} ${inc.name} — ${sLabel}</div>
+              <div class="incident-body">${inc.message}</div>
+              <div class="incident-meta">
+                ${flagBy}
+                <span>${inc.detectedAt ? new Date(inc.detectedAt).toLocaleString('en-GB', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : ''}</span>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } else {
+        incLabel.style.display = 'none';
+        incCard.style.display  = 'none';
+      }
+    }
+
+    // Live updates via Firestore snapshot
+    onSnapshot(doc(db, 'stats', 'serviceHealth'), snap => {
+      renderServices(snap.exists() ? snap.data().services : null);
+    });
+
+    // Refresh button — run a new health check
+    document.getElementById('refresh-btn').addEventListener('click', async () => {
+      const icon = document.getElementById('refresh-icon');
+      icon.classList.add('spinning');
+      await autoCheckServiceHealth();
+      icon.classList.remove('spinning');
+    });
+
+    // Auto health check on page load (throttled — once per 5 min via localStorage)
+    const lastCheck = parseInt(localStorage.getItem('flux_last_health_check') || '0');
+    if (Date.now() - lastCheck > 5 * 60 * 1000) {
+      localStorage.setItem('flux_last_health_check', Date.now().toString());
+      autoCheckServiceHealth();
+    }
+  </script>
+</body>
+</html>

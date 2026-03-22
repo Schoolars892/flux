@@ -1388,6 +1388,48 @@ export function initAuthUI(onUserChange) {
         <h3 style="font-family:'Bebas Neue',sans-serif;font-size:26px;margin:0;color:#111827;">Mod Panel</h3>
       </div>
 
+      <!-- ── INCIDENT BANNER ── -->
+      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">📢 Incident Banner</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px;">
+        <select id="mod-banner-type" style="padding:9px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;color:#111827;background:#fff;outline:none;cursor:pointer;">
+          <option value="warning">⚠️ Warning</option>
+          <option value="error">🔴 Error / Outage</option>
+          <option value="info">ℹ️ Info</option>
+        </select>
+        <textarea id="mod-banner-msg" placeholder="Banner message shown to all users..." maxlength="200" rows="2"
+          style="padding:10px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;resize:none;font-family:inherit;"></textarea>
+        <div style="display:flex;gap:8px;">
+          <button id="mod-banner-show-btn" style="flex:1;padding:10px;background:#f59e0b;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;">📢 Show Banner</button>
+          <button id="mod-banner-hide-btn" style="flex:1;padding:10px;background:#6b7280;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;">✕ Dismiss</button>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:16px 0;">
+
+      <!-- ── SERVICE STATUS ── -->
+      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🛡️ Service Status</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px;">
+        <div style="font-size:11px;color:#9ca3af;margin-bottom:2px;">Flag a service issue (auto-triggers banner + updates status page)</div>
+        ${['firestore', 'googleAuth', 'website', 'games'].map(key => {
+          const labels = { firestore:'🔥 Database', googleAuth:'🔐 Auth', website:'🌐 Website', games:'🎮 Games' };
+          return `<div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:13px;font-weight:600;color:#111827;flex:1;">${labels[key]}</span>
+            <select class="mod-svc-status" data-key="${key}" style="padding:6px 10px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;font-size:12px;color:#111827;background:#fff;outline:none;cursor:pointer;">
+              <option value="operational">✅ Operational</option>
+              <option value="degraded">⚠️ Degraded</option>
+              <option value="outage">🔴 Outage</option>
+            </select>
+            <button class="mod-svc-flag-btn" data-key="${key}" style="padding:6px 12px;background:#3a7dff;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:11px;">Flag</button>
+          </div>`;
+        }).join('')}
+        <div style="display:flex;gap:8px;margin-top:4px;">
+          <button id="mod-run-healthcheck" style="flex:1;padding:9px;background:#22c55e;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:12px;">🤖 Run Auto Health Check</button>
+          <a href="status.html" target="_blank" style="flex:1;padding:9px;background:#f9fafb;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-weight:700;cursor:pointer;font-size:12px;color:#111827;text-decoration:none;display:flex;align-items:center;justify-content:center;">🔗 View Status Page</a>
+        </div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:16px 0;">
+
       <!-- ── SERVER CONTROL ── -->
       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">Server Control</div>
       <div style="margin-bottom:12px;">
@@ -1810,6 +1852,68 @@ export function initAuthUI(onUserChange) {
       });
     }
 
+    // ── Incident banner controls ──
+    document.getElementById('mod-banner-show-btn')?.addEventListener('click', async () => {
+      const msg = document.getElementById('mod-banner-msg').value.trim();
+      const type = document.getElementById('mod-banner-type').value;
+      const modMsg = document.getElementById('mod-msg');
+      if (!msg) { modMsg.style.color='#ef4444'; modMsg.textContent='Enter a banner message.'; modMsg.style.display='block'; setTimeout(()=>modMsg.style.display='none',2000); return; }
+      const result = await setIncidentBanner(true, msg, type, 'dev');
+      modMsg.style.color = result.ok ? '#22c55e' : '#ef4444';
+      modMsg.textContent = result.ok ? '✓ Banner is now live!' : result.error;
+      modMsg.style.display = 'block'; setTimeout(() => modMsg.style.display='none', 3000);
+    });
+    document.getElementById('mod-banner-hide-btn')?.addEventListener('click', async () => {
+      const modMsg = document.getElementById('mod-msg');
+      const result = await setIncidentBanner(false, '', 'info', 'dev');
+      modMsg.style.color = result.ok ? '#22c55e' : '#ef4444';
+      modMsg.textContent = result.ok ? '✓ Banner dismissed.' : result.error;
+      modMsg.style.display = 'block'; setTimeout(() => modMsg.style.display='none', 2000);
+    });
+
+    // ── Service status flags ──
+    // Load current statuses
+    try {
+      const healthSnap = await getDoc(doc(db, 'stats', 'serviceHealth'));
+      if (healthSnap.exists()) {
+        const svcs = healthSnap.data().services || {};
+        document.querySelectorAll('.mod-svc-status').forEach(sel => {
+          const key = sel.dataset.key;
+          if (svcs[key]?.status) sel.value = svcs[key].status;
+        });
+      }
+    } catch {}
+
+    document.querySelectorAll('.mod-svc-flag-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const key = btn.dataset.key;
+        const status = document.querySelector(`.mod-svc-status[data-key="${key}"]`).value;
+        const modMsg = document.getElementById('mod-msg');
+        btn.textContent = '...'; btn.disabled = true;
+        const result = await setServiceStatus(key, status, 'dev');
+        btn.textContent = 'Flag'; btn.disabled = false;
+        modMsg.style.color = result.ok ? '#22c55e' : '#ef4444';
+        modMsg.textContent = result.ok ? `✓ ${key} flagged as ${status}` : result.error;
+        modMsg.style.display = 'block'; setTimeout(() => modMsg.style.display='none', 3000);
+      });
+    });
+
+    document.getElementById('mod-run-healthcheck')?.addEventListener('click', async () => {
+      const btn = document.getElementById('mod-run-healthcheck');
+      const modMsg = document.getElementById('mod-msg');
+      btn.textContent = '🤖 Checking...'; btn.disabled = true;
+      const results = await autoCheckServiceHealth();
+      btn.textContent = '🤖 Run Auto Health Check'; btn.disabled = false;
+      const issues = Object.entries(results).filter(([,v]) => v !== 'operational').map(([k]) => k);
+      modMsg.style.color = issues.length ? '#f59e0b' : '#22c55e';
+      modMsg.textContent = issues.length ? `⚠️ Issues: ${issues.join(', ')}` : '✅ All systems operational';
+      modMsg.style.display = 'block'; setTimeout(() => modMsg.style.display='none', 4000);
+      // Refresh selects
+      document.querySelectorAll('.mod-svc-status').forEach(sel => {
+        if (results[sel.dataset.key]) sel.value = results[sel.dataset.key];
+      });
+    });
+
     // ── Reward codes ──
     const codeGameSel = document.getElementById('mod-code-value-game');
     if (codeGameSel && window._FLUX_GAMES) {
@@ -2158,6 +2262,249 @@ export function initAuthUI(onUserChange) {
 }
 
 /* ===================== SERVER STATUS ===================== */
+
+/* ===================== INCIDENT BANNER ===================== */
+/* Firestore path: stats/incidentBanner
+   { active, message, type ('info'|'warning'|'error'), flaggedBy ('ai'|'dev'), updatedAt }
+*/
+
+export async function setIncidentBanner(active, message = '', type = 'warning', flaggedBy = 'dev') {
+  const user = auth.currentUser;
+  if (!user || user.uid !== OWNER_UID) return { ok: false, error: 'Admin only.' };
+  try {
+    await setDoc(doc(db, 'stats', 'incidentBanner'), {
+      active, message, type, flaggedBy,
+      updatedAt: new Date().toISOString(),
+    });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+export function initIncidentBanner() {
+  import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js').then(async ({ onSnapshot, doc: fd }) => {
+    let _lastMsg = null;
+    const ref = fd(db, 'stats', 'incidentBanner');
+
+    onSnapshot(ref, (snap) => {
+      const existing = document.getElementById('flux-incident-banner');
+      if (!snap.exists() || !snap.data().active) { existing?.remove(); return; }
+      const d = snap.data();
+      if (d.message === _lastMsg && existing) return;
+      _lastMsg = d.message;
+      existing?.remove();
+
+      const colors = {
+        info:    { bg: '#1e40af', border: '#3b82f6', icon: 'ℹ️' },
+        warning: { bg: '#92400e', border: '#f59e0b', icon: '⚠️' },
+        error:   { bg: '#7f1d1d', border: '#ef4444', icon: '🔴' },
+      };
+      const c = colors[d.type] || colors.warning;
+      const banner = document.createElement('div');
+      banner.id = 'flux-incident-banner';
+      banner.style.cssText = `
+        position:fixed;top:0;left:0;z-index:99980;
+        background:${c.bg};
+        border-bottom:2px solid ${c.border};
+        color:white;font-family:inherit;
+        padding:0;max-width:380px;
+        box-shadow:0 4px 20px rgba(0,0,0,0.4);
+        border-radius:0 0 14px 0;
+        overflow:hidden;
+        animation:banner-slide-in 0.3s cubic-bezier(0.34,1.56,0.64,1) both;
+      `;
+      const flagLabel = d.flaggedBy === 'ai'
+        ? '<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.15);padding:1px 7px;border-radius:20px;font-size:9px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">🤖 Flagged by AI</span>'
+        : '<span style="display:inline-flex;align-items:center;gap:3px;background:rgba(255,255,255,0.15);padding:1px 7px;border-radius:20px;font-size:9px;font-weight:800;letter-spacing:0.5px;text-transform:uppercase;">👨‍💻 Flagged by Developer</span>';
+      const time = new Date(d.updatedAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      banner.innerHTML = `
+        <div style="padding:10px 14px 10px 12px;">
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <span style="font-size:18px;flex-shrink:0;margin-top:1px;">${c.icon}</span>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;flex-wrap:wrap;">
+                ${flagLabel}
+                <span style="font-size:9px;color:rgba(255,255,255,0.5);">${time}</span>
+              </div>
+              <div style="font-size:12px;line-height:1.5;color:rgba(255,255,255,0.92);">${d.message}</div>
+              <button id="incident-status-link" style="margin-top:6px;background:rgba(255,255,255,0.15);border:none;color:white;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;cursor:pointer;font-family:inherit;letter-spacing:0.3px;">View Status Page →</button>
+            </div>
+            <button id="incident-banner-close" style="background:none;border:none;color:rgba(255,255,255,0.5);cursor:pointer;font-size:16px;padding:0;flex-shrink:0;line-height:1;margin-top:-2px;">✕</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(banner);
+
+      // Inject animation keyframe once
+      if (!document.getElementById('flux-banner-style')) {
+        const s = document.createElement('style');
+        s.id = 'flux-banner-style';
+        s.textContent = '@keyframes banner-slide-in { from { transform:translateX(-100%); opacity:0; } to { transform:translateX(0); opacity:1; } }';
+        document.head.appendChild(s);
+      }
+
+      document.getElementById('incident-banner-close').addEventListener('click', () => banner.remove());
+      document.getElementById('incident-status-link').addEventListener('click', () => {
+        window.open('status.html', '_blank');
+      });
+    });
+  });
+}
+
+/* ===================== STATUS PAGE DATA ===================== */
+/* Firestore path: stats/serviceHealth
+   { services: { firestore, googleAuth, website, games }, updatedAt }
+   Each service: { status ('operational'|'degraded'|'outage'), message, flaggedBy, detectedAt }
+*/
+
+const SERVICE_DESCRIPTIONS = {
+  firestore: {
+    name: 'Database (Firestore)',
+    icon: '🔥',
+    descriptions: {
+      operational: 'All database operations are running normally. User profiles, game stats, favourites, and real-time features are fully functional.',
+      degraded: 'The Firestore database is experiencing elevated latency or intermittent errors. Some operations such as loading profiles, saving favourites, or real-time features may be slow or fail occasionally. Engineers are investigating.',
+      outage: 'The Firestore database is currently unavailable. This is a Google Firebase infrastructure issue affecting user authentication state, profiles, favourites, game statistics, chat, and all real-time features. Games are still accessible but personalisation features will not work until service is restored.',
+    }
+  },
+  googleAuth: {
+    name: 'Authentication (Google)',
+    icon: '🔐',
+    descriptions: {
+      operational: 'Sign-in and authentication services are operating normally. Google login, email/password login, and session management are all functional.',
+      degraded: 'Authentication services are experiencing intermittent issues. Some sign-in attempts may fail or take longer than expected. Existing sessions should remain active.',
+      outage: 'Authentication is currently unavailable. Users cannot sign in or out. This is caused by a Google Firebase Authentication infrastructure issue. Existing sessions may still work, but new logins will fail.',
+    }
+  },
+  website: {
+    name: 'Website & Interface',
+    icon: '🌐',
+    descriptions: {
+      operational: 'The Flux website is loading normally. All pages, assets, and the user interface are being served correctly from GitHub Pages.',
+      degraded: 'The website is experiencing slow load times or intermittent availability issues. This may be caused by GitHub Pages infrastructure delays or CDN propagation. Some pages or assets may take longer to load.',
+      outage: 'The Flux website is currently unreachable or not loading correctly. This is likely a GitHub Pages outage or a DNS/CDN issue. No action can be taken from our side until the underlying infrastructure is restored.',
+    }
+  },
+  games: {
+    name: 'Games',
+    icon: '🎮',
+    descriptions: {
+      operational: 'All games are loading and running normally. Embedded game content is being served correctly.',
+      degraded: 'Some games may be failing to load or embed correctly. This could be caused by the game host blocking iframe embedding or a temporary issue with the game provider. Other games should still work.',
+      outage: 'Games are currently not loading. This may be caused by a widespread iframe blocking policy change, a network issue with the game hosting providers, or a GitHub Pages delivery problem.',
+    }
+  },
+};
+
+export async function setServiceStatus(serviceKey, status, flaggedBy = 'dev') {
+  const user = auth.currentUser;
+  if (!user || user.uid !== OWNER_UID) return { ok: false, error: 'Admin only.' };
+  try {
+    const snap = await getDoc(doc(db, 'stats', 'serviceHealth'));
+    const current = snap.exists() ? (snap.data().services || {}) : {};
+    current[serviceKey] = {
+      status,
+      message: SERVICE_DESCRIPTIONS[serviceKey]?.descriptions[status] || '',
+      flaggedBy,
+      detectedAt: new Date().toISOString(),
+    };
+    await setDoc(doc(db, 'stats', 'serviceHealth'), { services: current, updatedAt: new Date().toISOString() });
+
+    // Auto-trigger incident banner if not operational
+    if (status !== 'operational') {
+      const svc = SERVICE_DESCRIPTIONS[serviceKey];
+      const type = status === 'outage' ? 'error' : 'warning';
+      const msg = `<strong>${svc?.name}</strong> is ${status === 'outage' ? 'experiencing an outage' : 'degraded'}. ${svc?.descriptions[status]?.split('.')[0]}.`;
+      await setIncidentBanner(true, msg, type, flaggedBy);
+    }
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+export async function autoCheckServiceHealth() {
+  // Run health checks and update Firestore if issues are detected
+  const results = {};
+
+  // 1. Firestore check — time a real read
+  try {
+    const start = Date.now();
+    await getDoc(doc(db, 'stats', 'health_ping'));
+    const ms = Date.now() - start;
+    results.firestore = ms > 4000 ? 'degraded' : 'operational';
+  } catch {
+    results.firestore = 'outage';
+  }
+
+  // 2. Google Auth check — see if auth is responsive
+  try {
+    await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('timeout')), 5000);
+      const unsub = auth.onAuthStateChanged(() => { clearTimeout(timer); unsub(); resolve(); });
+    });
+    results.googleAuth = 'operational';
+  } catch {
+    results.googleAuth = 'degraded';
+  }
+
+  // 3. Website — we're here so it's operational
+  results.website = 'operational';
+
+  // 4. Games — try fetching a known game URL header
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 5000);
+    const res = await fetch('https://nxtcoreee3.github.io/Drive-Mad/', { method: 'HEAD', signal: ctrl.signal, mode: 'no-cors' });
+    clearTimeout(timer);
+    results.games = 'operational';
+  } catch {
+    results.games = 'degraded';
+  }
+
+  // Write results to Firestore
+  try {
+    const snap = await getDoc(doc(db, 'stats', 'serviceHealth'));
+    const existing = snap.exists() ? (snap.data().services || {}) : {};
+
+    let anyIssue = false;
+    for (const [key, status] of Object.entries(results)) {
+      const prev = existing[key]?.status;
+      if (status !== 'operational' && prev !== status) {
+        existing[key] = {
+          status,
+          message: SERVICE_DESCRIPTIONS[key]?.descriptions[status] || '',
+          flaggedBy: 'ai',
+          detectedAt: new Date().toISOString(),
+        };
+        anyIssue = true;
+      } else if (status === 'operational' && prev && prev !== 'operational') {
+        // Recovered — mark operational but keep history
+        existing[key] = {
+          status: 'operational',
+          message: SERVICE_DESCRIPTIONS[key]?.descriptions.operational,
+          flaggedBy: 'ai',
+          detectedAt: new Date().toISOString(),
+        };
+      }
+    }
+
+    await setDoc(doc(db, 'stats', 'serviceHealth'), { services: existing, updatedAt: new Date().toISOString() });
+
+    // Auto-trigger banner if new issues detected
+    if (anyIssue) {
+      const issues = Object.entries(existing)
+        .filter(([, v]) => v.status !== 'operational')
+        .map(([k]) => SERVICE_DESCRIPTIONS[k]?.name)
+        .filter(Boolean);
+      if (issues.length) {
+        const msg = `Automated monitoring has detected issues with: <strong>${issues.join(', ')}</strong>. Our systems are actively investigating.`;
+        const type = Object.values(existing).some(v => v.status === 'outage') ? 'error' : 'warning';
+        await setIncidentBanner(true, msg, type, 'ai');
+      }
+    }
+  } catch (e) { console.warn('Health write failed:', e); }
+
+  return results;
+}
+
 export function initServerStatus() {
   const ADMIN_UID = 'zEy6TO5ligf2um4rssIZs9C9X7f2';
 

@@ -1160,54 +1160,37 @@ export function initAuthUI(onUserChange) {
     <img id="user-avatar" src="" alt="avatar" style="width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid rgba(0,0,0,0.1);display:none;">
     <span id="user-name" style="font-size:13px;font-weight:600;color:var(--text,#111827);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
     <span style="color:var(--muted,#6b7280);font-size:11px;">▾</span>
-    <div id="profile-dropdown" style="display:none;position:absolute;top:calc(100% + 10px);right:0;background:var(--panel,#fff);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.2);border:1px solid var(--glass-border,rgba(0,0,0,0.07));width:260px;z-index:300;overflow:hidden;">
-      <div style="padding:16px;border-bottom:1px solid var(--glass-border,rgba(0,0,0,0.06));display:flex;align-items:center;gap:12px;">
-        <img id="profile-avatar-large" src="" alt="avatar" style="width:44px;height:44px;border-radius:50%;object-fit:cover;border:1px solid rgba(0,0,0,0.08);display:none;flex-shrink:0;">
-        <div id="profile-avatar-placeholder" style="width:44px;height:44px;border-radius:50%;background:#3a7dff;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:18px;flex-shrink:0;">?</div>
-        <div style="overflow:hidden;">
-          <div id="profile-display-name" style="font-weight:700;font-size:14px;color:var(--text,#111827);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-          <div id="profile-email" style="font-size:12px;color:var(--muted,#6b7280);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+    <div id="profile-dropdown" style="display:none;position:absolute;top:calc(100% + 10px);right:0;background:var(--panel,#fff);border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.2);border:1px solid var(--glass-border,rgba(0,0,0,0.07));width:240px;z-index:300;overflow:hidden;">
+      <!-- Header: avatar + name -->
+      <div style="padding:14px 16px;border-bottom:1px solid var(--glass-border,rgba(0,0,0,0.06));display:flex;align-items:center;gap:10px;">
+        <img id="profile-avatar-large" src="" alt="avatar" style="width:38px;height:38px;border-radius:50%;object-fit:cover;border:1px solid rgba(0,0,0,0.08);display:none;flex-shrink:0;">
+        <div id="profile-avatar-placeholder" style="width:38px;height:38px;border-radius:50%;background:#3a7dff;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:15px;flex-shrink:0;">?</div>
+        <div style="overflow:hidden;flex:1;min-width:0;">
+          <div id="profile-display-name" style="font-weight:700;font-size:13px;color:var(--text,#111827);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+          <div id="profile-email" style="font-size:11px;color:var(--muted,#6b7280);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
         </div>
       </div>
-      <div style="padding:12px 16px;border-bottom:1px solid var(--glass-border,rgba(0,0,0,0.06));display:flex;align-items:center;gap:8px;">
-        <span style="font-size:16px;">★</span>
-        <span id="profile-fav-count" style="font-size:13px;color:var(--text,#111827);font-weight:600;">0 favourited games</span>
-      </div>
-      <button id="change-password-btn" style="width:100%;padding:12px 16px;background:none;border:none;border-bottom:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:var(--text,#111827);display:flex;align-items:center;gap:10px;">
-        <span>🔑</span> Change Password
-      </button>
-      <a id="view-profile-btn" href="profile.html" style="display:none;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:var(--text,#111827);text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
+      <!-- Core actions -->
+      <a id="view-profile-btn" href="profile.html" style="display:none;align-items:center;gap:10px;padding:10px 16px;font-size:13px;color:var(--text,#111827);text-decoration:none;border-bottom:1px solid var(--glass-border,rgba(0,0,0,0.06));">
         <span>👤</span> My Profile
       </a>
-      <a href="social.html" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:var(--text,#111827);text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
-        <span>💬</span> Social & Chat <span style="display:inline-flex;align-items:center;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;font-size:8px;font-weight:800;padding:1px 5px;border-radius:20px;letter-spacing:0.8px;text-transform:uppercase;margin-left:4px;" class="dropdown-beta">BETA</span>
-      </a>
-      <a href="messages.html" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:var(--text,#111827);text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
-        <span>💬</span> Messages
-      </a>
-      <button id="dropdown-dark-toggle" style="width:100%;padding:12px 16px;background:none;border:none;border-bottom:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:var(--text,#111827);display:flex;align-items:center;gap:10px;">
-        <span id="dropdown-dark-icon">🌙</span> <span id="dropdown-dark-label">Dark Mode</span>
+      <button id="spin-wheel-btn" style="width:100%;padding:10px 16px;background:none;border:none;border-bottom:1px solid var(--glass-border,rgba(0,0,0,0.06));text-align:left;cursor:pointer;font-size:13px;color:var(--text,#111827);display:flex;align-items:center;gap:10px;">
+        <span>🎰</span> Spin Wheel <span id="spin-cooldown-label" style="font-size:10px;color:#6b7280;margin-left:auto;"></span>
       </button>
-      <button id="beta-mode-btn" style="width:100%;padding:12px 16px;background:none;border:none;border-bottom:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:var(--text,#111827);display:flex;align-items:center;gap:10px;">
-        <span>🧪</span> <span>Beta UI</span> <span id="beta-mode-indicator" style="display:none;" class="beta-mode-indicator">ON</span>
-      </button>
-      <a href="info.html" style="display:flex;align-items:center;gap:10px;padding:12px 16px;font-size:13px;color:var(--text,#111827);text-decoration:none;border-bottom:1px solid rgba(0,0,0,0.06);">
-        <span>🔒</span> Privacy Policy
-      </a>
-      <button id="tutorial-btn" style="width:100%;padding:12px 16px;background:none;border:none;border-bottom:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:var(--text,#111827);display:flex;align-items:center;gap:10px;">
-        <span>🎓</span> Tutorial
-      </button>
-      <button id="spin-wheel-btn" style="width:100%;padding:12px 16px;background:none;border:none;border-bottom:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:var(--text,#111827);display:flex;align-items:center;gap:10px;">
-        <span>🎰</span> Spin Wheel <span id="spin-cooldown-label" style="font-size:11px;color:#6b7280;margin-left:auto;"></span>
-      </button>
-      <button id="gift-points-btn" style="width:100%;padding:12px 16px;background:none;border:none;border-bottom:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:var(--text,#111827);display:flex;align-items:center;gap:10px;">
+      <button id="gift-points-btn" style="width:100%;padding:10px 16px;background:none;border:none;border-bottom:1px solid var(--glass-border,rgba(0,0,0,0.06));text-align:left;cursor:pointer;font-size:13px;color:var(--text,#111827);display:flex;align-items:center;gap:10px;">
         <span>🎁</span> Gift Points
       </button>
-      <button id="sign-out-btn" style="width:100%;padding:12px 16px;background:none;border:none;text-align:left;cursor:pointer;font-size:13px;color:#ef4444;display:flex;align-items:center;gap:10px;">
+      <button id="redeem-code-btn" style="width:100%;padding:10px 16px;background:none;border:none;border-bottom:1px solid var(--glass-border,rgba(0,0,0,0.06));text-align:left;cursor:pointer;font-size:13px;color:var(--text,#111827);display:flex;align-items:center;gap:10px;">
+        <span>🎟️</span> Redeem Code
+      </button>
+      <a href="settings.html" style="display:flex;align-items:center;gap:10px;padding:10px 16px;font-size:13px;color:var(--text,#111827);text-decoration:none;border-bottom:1px solid var(--glass-border,rgba(0,0,0,0.06));">
+        <span>⚙️</span> Settings
+      </a>
+      <button id="sign-out-btn" style="width:100%;padding:10px 16px;background:none;border:none;text-align:left;cursor:pointer;font-size:13px;color:#ef4444;display:flex;align-items:center;gap:10px;">
         <span>🚪</span> Sign Out
       </button>
-      <button id="mod-panel-btn" style="display:none;width:100%;padding:12px 16px;background:none;border:none;border-top:1px solid rgba(0,0,0,0.06);text-align:left;cursor:pointer;font-size:13px;color:#7c3aed;align-items:center;gap:10px;">
-        <span>⚙️</span> Mod Panel
+      <button id="mod-panel-btn" style="display:none;width:100%;padding:10px 16px;background:none;border:none;border-top:1px solid var(--glass-border,rgba(0,0,0,0.06));text-align:left;cursor:pointer;font-size:13px;color:#7c3aed;align-items:center;gap:10px;">
+        <span>🛠️</span> Mod Panel
       </button>
     </div>
   `;
@@ -1286,11 +1269,7 @@ export function initAuthUI(onUserChange) {
     document.getElementById('profile-dropdown').style.display = 'none';
   });
 
-  document.getElementById('tutorial-btn')?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    document.getElementById('profile-dropdown').style.display = 'none';
-    if (typeof window.startFluxTutorial === 'function') window.startFluxTutorial({ force: true });
-  });
+  // tutorial-btn moved to settings.html
 
   document.getElementById('spin-wheel-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -1304,15 +1283,13 @@ export function initAuthUI(onUserChange) {
     if (typeof window.openGiftPoints === 'function') window.openGiftPoints();
   });
 
-  document.getElementById('dropdown-dark-toggle').addEventListener('click', (e) => {
+  document.getElementById('redeem-code-btn')?.addEventListener('click', (e) => {
     e.stopPropagation();
-    const isDark = document.documentElement.classList.toggle('dark');
-    localStorage.setItem('flux_dark', isDark ? '1' : '0');
-    document.getElementById('dropdown-dark-icon').textContent = isDark ? '☀️' : '🌙';
-    document.getElementById('dropdown-dark-label').textContent = isDark ? 'Light Mode' : 'Dark Mode';
-    const standaloneBtn = document.getElementById('dark-toggle');
-    if (standaloneBtn) standaloneBtn.textContent = isDark ? '☀️' : '🌙';
+    document.getElementById('profile-dropdown').style.display = 'none';
+    if (typeof window.openRedeemCode === 'function') window.openRedeemCode();
   });
+
+  // dark-toggle moved to settings.html
 
   document.getElementById('beta-mode-btn')?.addEventListener('click', async (e) => {
     e.stopPropagation();
@@ -1511,7 +1488,42 @@ export function initAuthUI(onUserChange) {
       </div>
 
       <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:16px 0;">
-      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🎁 Gift Points</div>
+      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">🎟️ Reward Codes</div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input id="mod-code-input" type="text" placeholder="Code (e.g. FLUX2026)" maxlength="20"
+          style="padding:9px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;text-transform:uppercase;letter-spacing:1px;">
+        <select id="mod-code-type" style="padding:9px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;color:#111827;background:#fff;outline:none;cursor:pointer;">
+          <option value="points">⭐ Points reward</option>
+          <option value="game">🎮 Unlock a game</option>
+          <option value="spins">🎰 Free spins</option>
+        </select>
+        <div id="mod-code-value-wrap" style="display:flex;gap:8px;">
+          <input id="mod-code-value-num" type="number" placeholder="Amount (pts or spins)" min="1"
+            style="flex:1;padding:9px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;outline:none;">
+          <select id="mod-code-value-game" style="display:none;flex:1;padding:9px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;color:#111827;background:#fff;outline:none;cursor:pointer;">
+            <option value="">Select game...</option>
+          </select>
+        </div>
+        <input id="mod-code-desc" type="text" placeholder="Description (optional)" maxlength="60"
+          style="padding:9px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;">
+        <div style="display:flex;gap:8px;">
+          <div style="flex:1;">
+            <label style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:3px;">Max uses (0=∞)</label>
+            <input id="mod-code-maxuses" type="number" placeholder="0" min="0"
+              style="width:100%;padding:8px 10px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;font-size:13px;outline:none;box-sizing:border-box;">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:10px;color:#6b7280;text-transform:uppercase;letter-spacing:0.4px;display:block;margin-bottom:3px;">Expires</label>
+            <input id="mod-code-expiry" type="datetime-local"
+              style="width:100%;padding:8px 10px;border:1px solid rgba(0,0,0,0.1);border-radius:8px;font-size:12px;outline:none;color:#6b7280;box-sizing:border-box;">
+          </div>
+        </div>
+        <button id="mod-code-create-btn" style="padding:10px;background:#7c3aed;color:white;border:none;border-radius:10px;font-weight:700;cursor:pointer;font-size:13px;">🎟️ Create Code</button>
+        <!-- Active codes list -->
+        <div id="mod-codes-list" style="display:flex;flex-direction:column;gap:6px;margin-top:4px;"></div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:16px 0;">
       <div style="display:flex;flex-direction:column;gap:8px;">
         <input id="mod-gift-username" type="text" placeholder="Username..." maxlength="20"
           style="padding:9px 12px;border:1px solid rgba(0,0,0,0.1);border-radius:10px;font-size:13px;outline:none;box-sizing:border-box;">
@@ -1795,6 +1807,78 @@ export function initAuthUI(onUserChange) {
           b.style.color = on ? '#fff' : '#6b7280';
           b.style.borderColor = on ? '#111827' : '#e5e7eb';
         });
+      });
+    }
+
+    // ── Reward codes ──
+    const codeGameSel = document.getElementById('mod-code-value-game');
+    if (codeGameSel && window._FLUX_GAMES) {
+      codeGameSel.innerHTML = '<option value="">Select game...</option>';
+      window._FLUX_GAMES.forEach(g => {
+        const o = document.createElement('option'); o.value = g.id; o.textContent = g.title; codeGameSel.appendChild(o);
+      });
+    }
+    document.getElementById('mod-code-type')?.addEventListener('change', function() {
+      const isGame = this.value === 'game';
+      document.getElementById('mod-code-value-num').style.display = isGame ? 'none' : 'flex';
+      document.getElementById('mod-code-value-game').style.display = isGame ? 'flex' : 'none';
+    });
+    document.getElementById('mod-code-create-btn')?.addEventListener('click', async () => {
+      const code = document.getElementById('mod-code-input').value.trim();
+      const type = document.getElementById('mod-code-type').value;
+      const isGame = type === 'game';
+      const value = isGame
+        ? document.getElementById('mod-code-value-game').value
+        : parseInt(document.getElementById('mod-code-value-num').value) || 0;
+      const desc = document.getElementById('mod-code-desc').value.trim();
+      const maxUses = parseInt(document.getElementById('mod-code-maxuses').value) || 0;
+      const expiryRaw = document.getElementById('mod-code-expiry').value;
+      const expiresAt = expiryRaw ? new Date(expiryRaw).toISOString() : null;
+      const msg = document.getElementById('mod-msg');
+      if (!code) { msg.style.color='#ef4444'; msg.textContent='Enter a code name.'; msg.style.display='block'; setTimeout(()=>msg.style.display='none',2000); return; }
+      if (!value) { msg.style.color='#ef4444'; msg.textContent='Enter a value.'; msg.style.display='block'; setTimeout(()=>msg.style.display='none',2000); return; }
+      const result = await createRewardCode(code, type, value, { description: desc, maxUses, expiresAt });
+      msg.style.color = result.ok ? '#22c55e' : '#ef4444';
+      msg.textContent = result.ok ? `✓ Code "${code.toUpperCase()}" created!` : result.error;
+      msg.style.display = 'block'; setTimeout(() => msg.style.display='none', 3000);
+      if (result.ok) {
+        document.getElementById('mod-code-input').value = '';
+        document.getElementById('mod-code-value-num').value = '';
+        document.getElementById('mod-code-desc').value = '';
+        loadRewardCodesList();
+      }
+    });
+    loadRewardCodesList();
+
+    async function loadRewardCodesList() {
+      const list = document.getElementById('mod-codes-list');
+      if (!list) return;
+      const codes = await getRewardCodes();
+      list.innerHTML = '';
+      if (!codes.length) { list.innerHTML = '<div style="font-size:12px;color:#9ca3af;text-align:center;padding:6px 0;">No codes yet</div>'; return; }
+      codes.sort((a,b) => a.active === b.active ? 0 : a.active ? -1 : 1).forEach(c => {
+        const item = document.createElement('div');
+        item.style.cssText = `padding:10px 12px;border-radius:10px;border:1px solid ${c.active ? 'rgba(124,58,237,0.2)' : 'rgba(0,0,0,0.06)'};background:${c.active ? 'rgba(124,58,237,0.04)' : '#f9fafb'};font-size:12px;`;
+        const typeIcon = { points:'⭐', game:'🎮', spins:'🎰' }[c.type] || '🎟️';
+        const valueLabel = c.type === 'game' ? (window._FLUX_GAMES?.find(g=>g.id===c.value)?.title || c.value) : `${c.value} ${c.type}`;
+        const expires = c.expiresAt ? `· Exp ${new Date(c.expiresAt).toLocaleDateString()}` : '';
+        item.innerHTML = `
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <div>
+              <span style="font-family:monospace;font-weight:800;font-size:13px;color:${c.active?'#7c3aed':'#9ca3af'};letter-spacing:1px;">${c.code}</span>
+              <span style="margin-left:6px;font-size:10px;color:#6b7280;">${typeIcon} ${valueLabel} · ${c.uses}/${c.maxUses||'∞'} uses ${expires}</span>
+            </div>
+            ${c.active ? `<button data-code="${c.code}" class="mod-deactivate-code" style="padding:3px 8px;background:none;border:1px solid rgba(239,68,68,0.3);border-radius:6px;color:#ef4444;cursor:pointer;font-size:10px;font-weight:700;flex-shrink:0;">Deactivate</button>` : '<span style="font-size:10px;color:#9ca3af;font-weight:700;">INACTIVE</span>'}
+          </div>
+          ${c.description ? `<div style="font-size:11px;color:#9ca3af;margin-top:3px;">${c.description}</div>` : ''}
+        `;
+        item.querySelector('.mod-deactivate-code')?.addEventListener('click', async (e) => {
+          await deactivateRewardCode(e.currentTarget.dataset.code);
+          item.style.opacity = '0.5';
+          e.currentTarget.textContent = 'Deactivated'; e.currentTarget.disabled = true;
+          loadRewardCodesList();
+        });
+        list.appendChild(item);
       });
     }
 
@@ -2735,6 +2819,97 @@ export async function giftPointsToUser(targetUsername, amount) {
     }
     return result;
   } catch (e) { return { ok: false, error: e.message }; }
+}
+
+/* ===================== REWARD CODES ===================== */
+export async function createRewardCode(code, type, value, options = {}) {
+  // type: 'points' | 'game' | 'spins'
+  // value: number (points/spins) or gameId string
+  const user = auth.currentUser;
+  if (!user || user.uid !== OWNER_UID) return { ok: false, error: 'Admin only.' };
+  try {
+    const { setDoc: sd, doc: d } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    await sd(d(db, 'rewardCodes', code.toUpperCase().trim()), {
+      code: code.toUpperCase().trim(),
+      type,
+      value,
+      description: options.description || '',
+      maxUses: options.maxUses || 0, // 0 = unlimited
+      uses: 0,
+      redeemedBy: [],
+      expiresAt: options.expiresAt || null,
+      createdAt: new Date().toISOString(),
+      createdBy: user.uid,
+      active: true,
+    });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+export async function redeemCode(codeStr) {
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous) return { ok: false, error: 'Sign in to redeem codes.' };
+  const code = codeStr.toUpperCase().trim();
+  if (!code) return { ok: false, error: 'Enter a code.' };
+  try {
+    const { runTransaction, doc: d } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const codeRef = d(db, 'rewardCodes', code);
+    const profileRef = d(db, 'profiles', user.uid);
+    let result = {};
+    await runTransaction(db, async tx => {
+      const [codeSnap, profileSnap] = await Promise.all([tx.get(codeRef), tx.get(profileRef)]);
+      if (!codeSnap.exists()) { result = { ok: false, error: 'Invalid code.' }; return; }
+      const c = codeSnap.data();
+      if (!c.active) { result = { ok: false, error: 'This code is no longer active.' }; return; }
+      if (c.expiresAt && new Date(c.expiresAt) < new Date()) { result = { ok: false, error: 'This code has expired.' }; return; }
+      if (c.maxUses > 0 && c.uses >= c.maxUses) { result = { ok: false, error: 'This code has reached its maximum uses.' }; return; }
+      if ((c.redeemedBy || []).includes(user.uid)) { result = { ok: false, error: 'You have already redeemed this code.' }; return; }
+      if (!profileSnap.exists()) { result = { ok: false, error: 'Profile not found.' }; return; }
+      const profile = profileSnap.data();
+      // Apply reward
+      const profileUpdate = {};
+      if (c.type === 'points') {
+        profileUpdate.points = (profile.points || 0) + Number(c.value);
+        profileUpdate.totalPointsEarned = (profile.totalPointsEarned || 0) + Number(c.value);
+        result = { ok: true, type: 'points', value: Number(c.value), message: `🎉 You got ${c.value} points!` };
+      } else if (c.type === 'game') {
+        const unlocked = profile.unlockedGames || [];
+        if (unlocked.includes(c.value)) {
+          result = { ok: false, error: 'You already own this game.' }; return;
+        }
+        profileUpdate.unlockedGames = [...unlocked, c.value];
+        result = { ok: true, type: 'game', value: c.value, message: `🎮 Game unlocked!` };
+      } else if (c.type === 'spins') {
+        profileUpdate.bonusSpins = (profile.bonusSpins || 0) + Number(c.value);
+        result = { ok: true, type: 'spins', value: Number(c.value), message: `🎰 You got ${c.value} free spin${Number(c.value) > 1 ? 's' : ''}!` };
+      }
+      profileUpdate.redeemedCodes = [...(profile.redeemedCodes || []), code];
+      tx.update(profileRef, profileUpdate);
+      tx.update(codeRef, {
+        uses: (c.uses || 0) + 1,
+        redeemedBy: [...(c.redeemedBy || []), user.uid],
+      });
+    });
+    return result;
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+export async function getRewardCodes() {
+  const user = auth.currentUser;
+  if (!user || user.uid !== OWNER_UID) return [];
+  try {
+    const { collection: col, getDocs: gd } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const snap = await gd(col(db, 'rewardCodes'));
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch { return []; }
+}
+
+export async function deactivateRewardCode(code) {
+  const user = auth.currentUser;
+  if (!user || user.uid !== OWNER_UID) return;
+  try {
+    await updateDoc(doc(db, 'rewardCodes', code.toUpperCase()), { active: false });
+  } catch {}
 }
 
 /* ===================== CHAT LOCK ===================== */

@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Settings — Flux</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <script>
+    (function() {
+      try {
+        if (localStorage.getItem('flux_dark') === '1' ||
+            (localStorage.getItem('flux_dark') === null && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+        if (localStorage.getItem('flux_beta') === '1') {
+          document.documentElement.classList.add('beta');
+        }
+      } catch(e) {}
+    })();
+  </script>
+  <style>
+    .settings-page { max-width: 680px; margin: 32px auto; padding: 0 20px 60px; }
+    .settings-back { display:inline-flex;align-items:center;gap:8px;color:var(--muted);text-decoration:none;font-size:13px;font-weight:600;margin-bottom:24px;padding:6px 0;transition:color 0.15s; }
+    .settings-back:hover { color:var(--accent); }
+    .settings-title { font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--text);margin:0 0 6px; }
+    .settings-sub { font-size:13px;color:var(--muted);margin:0 0 32px; }
+    .settings-section { margin-bottom:28px; }
+    .settings-section-label { font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px; }
+    .settings-card { background:var(--panel);border:1px solid var(--glass-border);border-radius:14px;overflow:hidden; }
+    .settings-row { display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px;border-bottom:1px solid var(--glass-border);transition:background 0.1s; }
+    .settings-row:last-child { border-bottom:none; }
+    .settings-row:hover { background:rgba(58,125,255,0.03); }
+    .settings-row-left { display:flex;align-items:center;gap:12px; }
+    .settings-row-icon { font-size:20px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:9px;flex-shrink:0; }
+    .settings-row-text { }
+    .settings-row-label { font-size:14px;font-weight:600;color:var(--text); }
+    .settings-row-desc { font-size:12px;color:var(--muted);margin-top:1px; }
+    .settings-btn { background:none;border:1px solid var(--glass-border);border-radius:8px;padding:7px 14px;font-size:13px;font-weight:600;color:var(--text);cursor:pointer;transition:all 0.15s;font-family:inherit; }
+    .settings-btn:hover { background:rgba(58,125,255,0.07);border-color:rgba(58,125,255,0.3);color:var(--accent); }
+    .settings-btn.danger { color:#ef4444;border-color:rgba(239,68,68,0.2); }
+    .settings-btn.danger:hover { background:rgba(239,68,68,0.07);border-color:rgba(239,68,68,0.4); }
+    .settings-btn.primary { background:var(--accent);color:white;border-color:var(--accent); }
+    .settings-btn.primary:hover { opacity:0.88; }
+    /* Toggle switch */
+    .toggle-wrap { position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0; }
+    .toggle-wrap input { opacity:0;width:0;height:0;position:absolute; }
+    .toggle-track { position:absolute;inset:0;background:#d1d5db;border-radius:12px;transition:background 0.2s;cursor:pointer; }
+    .toggle-thumb { position:absolute;top:2px;left:2px;width:20px;height:20px;background:#fff;border-radius:50%;transition:transform 0.2s;box-shadow:0 1px 3px rgba(0,0,0,0.2);pointer-events:none; }
+    input:checked + .toggle-track { background:var(--accent); }
+    input:checked ~ .toggle-thumb { transform:translateX(20px); }
+    /* Beta badge in settings */
+    .beta-pill { display:inline-flex;align-items:center;background:linear-gradient(135deg,#7c6aff,#a855f7);color:white;font-size:9px;font-weight:800;padding:2px 7px;border-radius:20px;letter-spacing:0.5px;text-transform:uppercase;margin-left:8px; }
+    /* Password inputs */
+    .settings-input { width:100%;padding:10px 12px;border:1px solid var(--glass-border);border-radius:10px;font-size:14px;outline:none;box-sizing:border-box;background:var(--bg,#f9fafb);color:var(--text);font-family:inherit;transition:border-color 0.15s; }
+    .settings-input:focus { border-color:var(--accent);box-shadow:0 0 0 3px rgba(58,125,255,0.1); }
+    .settings-expandable { display:none;padding:14px 18px;border-top:1px solid var(--glass-border);background:var(--bg,#f9fafb); }
+    .settings-expandable.open { display:block; }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="index.html" class="logo">FLUX</a>
+    </div>
+    <nav class="nav" id="main-nav">
+      <ul class="nav-list">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="games.html">Games</a></li>
+        <li><a href="social.html">Social</a></li>
+        <li><a href="info.html">Info</a></li>
+        <li><a href="credits.html">Credits</a></li>
+        <li><a href="donate.html">Donate</a></li>
+      </ul>
+    </nav>
+    <div class="right-actions" id="right-actions"></div>
+  </header>
+
+  <main class="settings-page">
+    <a href="javascript:history.back()" class="settings-back">← Back</a>
+    <h1 class="settings-title">Settings</h1>
+    <p class="settings-sub">Manage your account, appearance, and preferences.</p>
+
+    <!-- ACCOUNT -->
+    <div class="settings-section">
+      <div class="settings-section-label">Account</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:rgba(58,125,255,0.1);">👤</div>
+            <div class="settings-row-text">
+              <div class="settings-row-label">My Profile</div>
+              <div class="settings-row-desc">View and edit your public profile</div>
+            </div>
+          </div>
+          <a id="settings-profile-link" href="profile.html" class="settings-btn">Open</a>
+        </div>
+        <div class="settings-row" id="pw-row" style="display:none;">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:rgba(239,68,68,0.1);">🔑</div>
+            <div class="settings-row-text">
+              <div class="settings-row-label">Change Password</div>
+              <div class="settings-row-desc">Update your account password</div>
+            </div>
+          </div>
+          <button class="settings-btn" id="pw-expand-btn">Change</button>
+        </div>
+        <div class="settings-expandable" id="pw-expand">
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <input type="password" id="pw-new" placeholder="New password" class="settings-input">
+            <input type="password" id="pw-confirm" placeholder="Confirm new password" class="settings-input">
+            <div style="display:flex;gap:8px;align-items:center;">
+              <button id="pw-save" class="settings-btn primary">Save Password</button>
+              <span id="pw-msg" style="font-size:12px;display:none;"></span>
+            </div>
+          </div>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:rgba(34,197,94,0.1);">💬</div>
+            <div class="settings-row-text">
+              <div class="settings-row-label">Social & Chat</div>
+              <div class="settings-row-desc">See who's online, chat, follow friends</div>
+            </div>
+          </div>
+          <a href="social.html" class="settings-btn">Open</a>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:rgba(168,85,247,0.1);">💌</div>
+            <div class="settings-row-text">
+              <div class="settings-row-label">Messages</div>
+              <div class="settings-row-desc">Direct messages and group chats</div>
+            </div>
+          </div>
+          <a href="messages.html" class="settings-btn">Open</a>
+        </div>
+        <div class="settings-row" id="signout-row" style="display:none;">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:rgba(239,68,68,0.1);">🚪</div>
+            <div class="settings-row-text">
+              <div class="settings-row-label">Sign Out</div>
+              <div class="settings-row-desc">Sign out of your Flux account</div>
+            </div>
+          </div>
+          <button class="settings-btn danger" id="settings-signout-btn">Sign Out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPEARANCE -->
+    <div class="settings-section">
+      <div class="settings-section-label">Appearance</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:rgba(0,0,0,0.06);" id="dark-icon-wrap">🌙</div>
+            <div class="settings-row-text">
+              <div class="settings-row-label">Dark Mode</div>
+              <div class="settings-row-desc">Switch between light and dark theme</div>
+            </div>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" id="dark-toggle-settings">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:linear-gradient(135deg,rgba(124,106,255,0.15),rgba(168,85,247,0.1));">🧪</div>
+            <div class="settings-row-text">
+              <div class="settings-row-label">Beta UI <span class="beta-pill" id="beta-pill" style="display:none;">ON</span></div>
+              <div class="settings-row-desc">Revolutionary new look — experimental</div>
+            </div>
+          </div>
+          <label class="toggle-wrap">
+            <input type="checkbox" id="beta-toggle-settings">
+            <span class="toggle-track"></span>
+            <span class="toggle-thumb"></span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- TUTORIAL & HELP -->
+    <div class="settings-section">
+      <div class="settings-section-label">Help</div>
+      <div class="settings-card">
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:rgba(251,191,36,0.12);">🎓</div>
+            <div class="settings-row-text">
+              <div class="settings-row-label">Tutorial</div>
+              <div class="settings-row-desc">Replay the getting-started tour</div>
+            </div>
+          </div>
+          <button class="settings-btn" id="tutorial-settings-btn">Start</button>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:rgba(58,125,255,0.1);">🔒</div>
+            <div class="settings-row-text">
+              <div class="settings-row-label">Privacy Policy</div>
+              <div class="settings-row-desc">How Flux handles your data</div>
+            </div>
+          </div>
+          <a href="info.html" class="settings-btn">Read</a>
+        </div>
+        <div class="settings-row">
+          <div class="settings-row-left">
+            <div class="settings-row-icon" style="background:rgba(34,197,94,0.1);">⭐</div>
+            <div class="settings-row-text">
+              <div class="settings-row-label">Credits</div>
+              <div class="settings-row-desc">The people who made Flux</div>
+            </div>
+          </div>
+          <a href="credits.html" class="settings-btn">View</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOT SIGNED IN state -->
+    <div id="not-signed-in" style="display:none;text-align:center;padding:40px 20px;background:var(--panel);border-radius:14px;border:1px solid var(--glass-border);">
+      <div style="font-size:40px;margin-bottom:12px;">🔐</div>
+      <div style="font-family:'Bebas Neue',sans-serif;font-size:24px;color:var(--text);margin-bottom:8px;">Sign in to access all settings</div>
+      <div style="font-size:13px;color:var(--muted);">Some settings are only available when you're signed in.</div>
+    </div>
+  </main>
+
+  <script type="module">
+    import { initAuthUI, initDarkMode, initPresence, trackDailyVisitor, initServerStatus, initBroadcast, initChaos, initJumpscare, initCookieConsent, logOut } from './firebase-auth.js';
+
+    initDarkMode();
+    initCookieConsent();
+    initPresence();
+    trackDailyVisitor();
+    initServerStatus();
+    initBroadcast();
+    initChaos();
+    initJumpscare();
+
+    // Dark mode toggle
+    const darkToggle = document.getElementById('dark-toggle-settings');
+    const darkIconWrap = document.getElementById('dark-icon-wrap');
+    const isDark = document.documentElement.classList.contains('dark');
+    darkToggle.checked = isDark;
+    darkIconWrap.textContent = isDark ? '☀️' : '🌙';
+
+    // Sync toggle thumb
+    if (isDark) {
+      darkToggle.nextElementSibling.style.background = 'var(--accent)';
+    }
+
+    darkToggle.addEventListener('change', () => {
+      const on = darkToggle.checked;
+      document.documentElement.classList.toggle('dark', on);
+      localStorage.setItem('flux_dark', on ? '1' : '0');
+      darkIconWrap.textContent = on ? '☀️' : '🌙';
+    });
+
+    // Beta toggle
+    const betaToggle = document.getElementById('beta-toggle-settings');
+    const betaPill = document.getElementById('beta-pill');
+    const isBeta = document.documentElement.classList.contains('beta');
+    betaToggle.checked = isBeta;
+    if (isBeta) betaPill.style.display = 'inline-flex';
+
+    betaToggle.addEventListener('change', async () => {
+      const on = betaToggle.checked;
+      document.documentElement.classList.toggle('beta', on);
+      localStorage.setItem('flux_beta', on ? '1' : '0');
+      betaPill.style.display = on ? 'inline-flex' : 'none';
+      // Persist to Firestore
+      try {
+        const { getFirestore, doc, updateDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        const { getAuth } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+        const { getApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+        const user = getAuth(getApp()).currentUser;
+        if (user && !user.isAnonymous) {
+          await updateDoc(doc(getFirestore(getApp()), 'profiles', user.uid), { betaMode: on });
+        }
+      } catch {}
+      // Toast
+      const t = document.createElement('div');
+      t.style.cssText = `position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;background:${on ? 'linear-gradient(135deg,#7c6aff,#a855f7)' : '#1a1d27'};color:white;padding:12px 22px;border-radius:20px;font-size:13px;font-weight:700;box-shadow:0 8px 30px rgba(0,0,0,0.3);pointer-events:none;opacity:0;transition:opacity 0.2s;`;
+      t.textContent = on ? '🧪 Beta UI activated!' : '✓ Returned to classic UI';
+      document.body.appendChild(t);
+      requestAnimationFrame(() => t.style.opacity = '1');
+      setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 200); }, 2500);
+    });
+
+    // Tutorial
+    document.getElementById('tutorial-settings-btn').addEventListener('click', () => {
+      window.location.href = 'index.html?tutorial=1';
+    });
+
+    // Password change
+    const pwRow = document.getElementById('pw-row');
+    const pwExpand = document.getElementById('pw-expand');
+    document.getElementById('pw-expand-btn').addEventListener('click', () => {
+      pwExpand.classList.toggle('open');
+    });
+    document.getElementById('pw-save').addEventListener('click', async () => {
+      const { getAuth, updatePassword } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js');
+      const { getApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+      const newPw = document.getElementById('pw-new').value;
+      const confirmPw = document.getElementById('pw-confirm').value;
+      const msg = document.getElementById('pw-msg');
+      msg.style.display = 'block';
+      if (newPw !== confirmPw) { msg.style.color = '#ef4444'; msg.textContent = 'Passwords do not match.'; return; }
+      if (newPw.length < 6) { msg.style.color = '#ef4444'; msg.textContent = 'Must be at least 6 characters.'; return; }
+      try {
+        await updatePassword(getAuth(getApp()).currentUser, newPw);
+        msg.style.color = '#22c55e'; msg.textContent = '✓ Password updated!';
+        setTimeout(() => { pwExpand.classList.remove('open'); msg.style.display = 'none'; }, 1500);
+      } catch(err) {
+        msg.style.color = '#ef4444';
+        msg.textContent = err.message.replace('Firebase: ', '').replace(/\(auth\/.*\)/, '').trim();
+      }
+    });
+
+    // Sign out
+    document.getElementById('settings-signout-btn').addEventListener('click', async () => {
+      await logOut();
+      window.location.href = 'index.html';
+    });
+
+    // Auth UI (show/hide account-specific rows)
+    initAuthUI(async (user) => {
+      if (user && !user.isAnonymous) {
+        document.getElementById('signout-row').style.display = 'flex';
+        document.getElementById('pw-row').style.display = 'flex';
+        // Update profile link
+        try {
+          const { getFirestore, doc, getDoc } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+          const { getApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+          const snap = await getDoc(doc(getFirestore(getApp()), 'profiles', user.uid));
+          if (snap.exists()) {
+            document.getElementById('settings-profile-link').href = `profile.html?user=${snap.data().username}`;
+            // Sync beta from Firestore
+            const betaOn = snap.data().betaMode || false;
+            document.documentElement.classList.toggle('beta', betaOn);
+            localStorage.setItem('flux_beta', betaOn ? '1' : '0');
+            betaToggle.checked = betaOn;
+            betaPill.style.display = betaOn ? 'inline-flex' : 'none';
+          }
+        } catch {}
+      } else if (user && user.isAnonymous) {
+        document.getElementById('signout-row').style.display = 'flex';
+      }
+    });
+  </script>
+</body>
+</html>

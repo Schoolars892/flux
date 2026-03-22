@@ -3,7 +3,7 @@
    favorites (cloud+local), dark mode, toasts, recently played, new badge, stats button
 */
 
-import { initAuthUI, loadCloudFavs, saveCloudFavs, syncProfileFavs, syncProfileRecents, initPresence, initStatsButton, trackDailyVisitor, initServerStatus, initBroadcast, initChaos, initJumpscare, initCookieConsent, trackLoginStreak, trackTimeOnSite, trackGamePlay, fetchHotGame, fetchGameFirstSeen, fetchAllGameStats, setCurrentlyPlaying, clearCurrentlyPlaying, rateGame, getUserRating, reportGame, checkFirestoreHealth, fetchGameDetail, getAiGameDescription, getGameReviews, submitReview, addReviewComment, likeReview, deleteReview, fetchGamePricing, getUnlockedGames, unlockGame, SPIN_SEGMENTS, getLastSpin, spinWheel, giftPointsToUser } from './firebase-auth.js';
+import { initAuthUI, loadCloudFavs, saveCloudFavs, syncProfileFavs, syncProfileRecents, initPresence, initStatsButton, trackDailyVisitor, initServerStatus, initBroadcast, initChaos, initJumpscare, initCookieConsent, trackLoginStreak, trackTimeOnSite, trackGamePlay, fetchHotGame, fetchGameFirstSeen, fetchAllGameStats, setCurrentlyPlaying, clearCurrentlyPlaying, rateGame, getUserRating, reportGame, checkFirestoreHealth, fetchGameDetail, getAiGameDescription, getGameReviews, submitReview, addReviewComment, likeReview, deleteReview, fetchGamePricing, getUnlockedGames, unlockGame, SPIN_SEGMENTS, getLastSpin, spinWheel, giftPointsToUser, redeemCode, createRewardCode, getRewardCodes, deactivateRewardCode } from './firebase-auth.js';
 
 const GAMES = [
   {
@@ -1394,5 +1394,86 @@ window.openGiftPoints = function() {
     msg.style.display='block';
     if(res.ok){msg.style.color='#22c55e';msg.textContent=`✓ Sent ${amount} pts to @${username}! Balance: ${res.newBalance} pts`;setTimeout(close,2500);}
     else{msg.style.color='#ef4444';msg.textContent=res.error;btn.textContent='🎁 Send Gift';btn.disabled=false;}
+  });
+};
+
+/* ===================== REDEEM CODE MODAL ===================== */
+window.openRedeemCode = function() {
+  document.getElementById('flux-redeem-modal')?.remove();
+  const modal = document.createElement('div');
+  modal.id = 'flux-redeem-modal';
+  modal.style.cssText = 'position:fixed;inset:0;z-index:9100;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.6);backdrop-filter:blur(6px);padding:20px;box-sizing:border-box;font-family:inherit;';
+  modal.innerHTML = `
+    <div style="background:var(--panel,#fff);border-radius:20px;padding:28px 24px;max-width:380px;width:100%;box-shadow:0 30px 80px rgba(0,0,0,0.25);">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:44px;margin-bottom:8px;">🎟️</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--text,#111827);">Redeem a Code</div>
+        <div style="font-size:13px;color:var(--muted,#6b7280);margin-top:4px;">Enter a reward code to claim points, games, or free spins.</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input id="redeem-code-input" type="text" placeholder="Enter code..." maxlength="20"
+          style="flex:1;padding:12px 14px;border:2px solid var(--glass-border,rgba(0,0,0,0.1));border-radius:12px;font-size:15px;font-family:monospace;letter-spacing:2px;text-transform:uppercase;outline:none;box-sizing:border-box;background:var(--bg,#f9fafb);color:var(--text,#111827);transition:border-color 0.15s;">
+        <button id="redeem-submit-btn" style="padding:12px 18px;background:linear-gradient(135deg,#7c3aed,#a855f7);color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;white-space:nowrap;box-shadow:0 4px 14px rgba(124,58,237,0.35);transition:opacity 0.15s;">Redeem</button>
+      </div>
+      <div id="redeem-result" style="display:none;padding:14px 16px;border-radius:12px;font-size:14px;font-weight:600;text-align:center;margin-bottom:12px;"></div>
+      <button id="redeem-close-btn" style="width:100%;padding:11px;background:none;border:1px solid var(--glass-border,rgba(0,0,0,0.1));border-radius:12px;font-size:14px;cursor:pointer;color:var(--text,#111827);">Close</button>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  const close = () => modal.remove();
+  document.getElementById('redeem-close-btn').addEventListener('click', close);
+  modal.addEventListener('click', e => { if (e.target === modal) close(); });
+  window.addEventListener('keydown', function esc(e) { if (e.key === 'Escape') { close(); window.removeEventListener('keydown', esc); } });
+
+  const input = document.getElementById('redeem-code-input');
+  const result = document.getElementById('redeem-result');
+  input.focus();
+
+  // Format input as uppercase
+  input.addEventListener('input', () => { input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, ''); });
+
+  // Submit on Enter
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('redeem-submit-btn').click(); });
+
+  document.getElementById('redeem-submit-btn').addEventListener('click', async () => {
+    const code = input.value.trim();
+    const btn = document.getElementById('redeem-submit-btn');
+    if (!code) {
+      input.style.borderColor = '#ef4444';
+      setTimeout(() => input.style.borderColor = '', 800);
+      return;
+    }
+    btn.textContent = 'Checking...'; btn.disabled = true; btn.style.opacity = '0.7';
+    result.style.display = 'none';
+    const res = await redeemCode(code);
+    btn.textContent = 'Redeem'; btn.disabled = false; btn.style.opacity = '1';
+
+    if (res.ok) {
+      result.style.display = 'block';
+      result.style.background = 'rgba(34,197,94,0.1)';
+      result.style.border = '1px solid rgba(34,197,94,0.25)';
+      result.style.color = '#16a34a';
+      result.innerHTML = `${res.message}<br><span style="font-size:12px;font-weight:400;opacity:0.8;">${
+        res.type === 'points' ? 'Points added to your balance instantly.' :
+        res.type === 'game' ? 'Game is now unlocked — play it from the games page.' :
+        `${res.value} free spin${res.value > 1 ? 's' : ''} added. Use them from your profile menu.`
+      }</span>`;
+      input.value = '';
+      input.style.borderColor = '#22c55e';
+      setTimeout(() => { input.style.borderColor = ''; }, 2000);
+      // If game unlocked, refresh the card grid
+      if (res.type === 'game') {
+        _unlockedGames.push(res.value);
+        if (document.getElementById('game-grid') || document.getElementById('games-grid')) renderGames(GAMES);
+      }
+    } else {
+      result.style.display = 'block';
+      result.style.background = 'rgba(239,68,68,0.08)';
+      result.style.border = '1px solid rgba(239,68,68,0.2)';
+      result.style.color = '#dc2626';
+      result.textContent = res.error;
+      input.style.borderColor = '#ef4444';
+      setTimeout(() => { input.style.borderColor = ''; }, 1000);
+    }
   });
 };

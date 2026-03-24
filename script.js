@@ -145,8 +145,15 @@ const GAMES = [
   thumb: 'assets/space-waves.png',
   url: 'https://nxtcoreee3.github.io/Space-Waves/',
   desc: 'Control an arrow and dodge obstacles through fast-paced levels.'
+},
+{
+  id: 'jetpack-joyride',
+  title: 'Jetpack Joyride',
+  thumb: 'assets/jetpack-joyride.png',
+  url: 'https://nxtcoreee3.github.io/Jetpack-Joyride/',
+  desc: 'Fly with a jetpack, dodge lasers and missiles, and see how far you can go.'
 }
-];
+   ];
 
 // expose game count globally for stats button
 window._FLUX_GAME_COUNT = GAMES.length;

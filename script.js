@@ -138,8 +138,15 @@ const GAMES = [
   thumb: 'assets/elastic-man.png',
   url: 'https://nxtcoreee3.github.io/Elastic-Man/',
   desc: 'Stretch and squish a face with realistic physics in this weirdly satisfying game.'
+},
+{
+  id: 'space-waves',
+  title: 'Space Waves',
+  thumb: 'assets/space-waves.png',
+  url: 'https://nxtcoreee3.github.io/Space-Waves/',
+  desc: 'Control an arrow and dodge obstacles through fast-paced levels.'
 }
-   ];
+];
 
 // expose game count globally for stats button
 window._FLUX_GAME_COUNT = GAMES.length;

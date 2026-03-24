@@ -131,8 +131,15 @@ const GAMES = [
     thumb: 'assets/eaglercraft.png',
     url: 'https://eaglercraft.app/web/',
     desc: 'Play a browser-based Minecraft-style game with survival, building, and multiplayer. (Hosted by EaglercraftX)'
-  }
-];
+  },
+{
+  id: 'elastic-man',
+  title: 'Elastic Man',
+  thumb: 'assets/elastic-man.png',
+  url: 'https://nxtcoreee3.github.io/Elastic-Man/',
+  desc: 'Stretch and squish a face with realistic physics in this weirdly satisfying game.'
+}
+   ];
 
 // expose game count globally for stats button
 window._FLUX_GAME_COUNT = GAMES.length;

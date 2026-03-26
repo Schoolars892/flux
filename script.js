@@ -173,6 +173,13 @@ const GAMES = [
   thumb: 'assets/guess-their-answer.png',
   url: 'https://nxtcoreee3.github.io/Guess-Their-Answer/',
   desc: 'Answer fun questions by guessing the most popular responses to beat your opponents.'
+},
+{
+  id: 'block-blast',
+  title: 'Block Blast',
+  thumb: 'assets/block-blast.png',
+  url: 'https://nxtcoreee3.github.io/Block-Blast/',
+  desc: 'Place blocks, clear lines, and keep the board from filling up.'
 }
 ];
 

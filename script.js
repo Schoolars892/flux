@@ -222,6 +222,13 @@ const GAMES = [
   thumb: 'assets/basket-random.png',
   url: 'https://nxtcoreee3.github.io/Basket-Random/',
   desc: 'Play chaotic basketball with random physics and score before your opponent.'
+},
+{
+  id: 'clash-of-vikings',
+  title: 'Clash of Vikings',
+  thumb: 'assets/clash-of-vikings.png',
+  url: 'https://nxtcoreee3.github.io/Clash-of-Vikings/',
+  desc: 'Build your deck, deploy units, and destroy enemy towers in fast-paced battles.'
 }
 ];
 

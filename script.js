@@ -229,6 +229,13 @@ const GAMES = [
   thumb: 'assets/clash-of-vikings.png',
   url: 'https://nxtcoreee3.github.io/Clash-of-Vikings/',
   desc: 'Build your deck, deploy units, and destroy enemy towers in fast-paced battles.'
+},
+{
+  id: 'bowmasters',
+  title: 'Bowmasters',
+  thumb: 'assets/bowmasters.png',
+  url: 'https://nxtcoreee3.github.io/Bowmasters/',
+  desc: 'Aim carefully, throw weapons, and defeat your opponent in turn-based duels.'
 }
 ];
 

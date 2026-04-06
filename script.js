@@ -236,6 +236,13 @@ const GAMES = [
   thumb: 'assets/bowmasters.png',
   url: 'https://nxtcoreee3.github.io/Bowmasters/',
   desc: 'Aim carefully, throw weapons, and defeat your opponent in turn-based duels.'
+},
+{
+  id: 'state-io',
+  title: 'State.io',
+  thumb: 'assets/state-io.png',
+  url: 'https://nxtcoreee3.github.io/State.io/',
+  desc: 'Send troops, capture territories, and conquer the map using smart strategy.'
 }
 ];
 

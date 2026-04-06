@@ -13,13 +13,6 @@ const GAMES = [
     url: 'https://nxtcoreee3.github.io/Drive-Mad/',
     desc: 'High speed driving challenge'
   },
-  {
-  id: 'basket-random',
-  title: 'Basket Random',
-  thumb: 'assets/basket-random.png',
-  url: 'https://nxtcoreee3.github.io/Basket-Random/',
-  desc: 'Play chaotic basketball with random physics and score before your opponent.'
-},
    {
     id: 'stickman-hook',
     title: 'Stickman Hook',
@@ -222,6 +215,13 @@ const GAMES = [
   thumb: 'assets/monster-tracks.png',
   url: 'https://nxtcoreee3.github.io/Monster-Tracks/',
   desc: 'Drive monster trucks through crazy tracks and perform insane stunts.'
+},
+  {
+  id: 'basket-random',
+  title: 'Basket Random',
+  thumb: 'assets/basket-random.png',
+  url: 'https://nxtcoreee3.github.io/Basket-Random/',
+  desc: 'Play chaotic basketball with random physics and score before your opponent.'
 }
 ];
 

@@ -243,6 +243,13 @@ const GAMES = [
   thumb: 'assets/state-io.png',
   url: 'https://nxtcoreee3.github.io/State.io/',
   desc: 'Send troops, capture territories, and conquer the map using smart strategy.'
+},
+{
+  id: 'hole-io',
+  title: 'Hole.io',
+  thumb: 'assets/hole-io.png',
+  url: 'https://nxtcoreee3.github.io/Hole.io/',
+  desc: 'Control a black hole, swallow everything, and grow bigger than your rivals.'
 }
 ];
 

@@ -87,12 +87,47 @@ export function initPresence() {
   const presenceRef = ref(rtdb, `presence/${sessionId}`);
   const connectedRef = ref(rtdb, '.info/connected');
 
-  onValue(connectedRef, (snap) => {
+  // Build the presence payload — enriched with uid/username once auth resolves
+  const buildPayload = () => {
+    const user = auth.currentUser;
+    return {
+      online: true,
+      timestamp: serverTimestamp(),
+      uid: (user && !user.isAnonymous) ? user.uid : null,
+      username: null, // filled in below after profile loads
+      currentlyPlaying: null,
+    };
+  };
+
+  onValue(connectedRef, async (snap) => {
     if (snap.val() === true) {
-      set(presenceRef, { online: true, timestamp: serverTimestamp() });
+      const payload = buildPayload();
+      // Try to attach username from Firestore profile
+      try {
+        const user = auth.currentUser;
+        if (user && !user.isAnonymous) {
+          const pSnap = await getDoc(doc(db, 'profiles', user.uid));
+          if (pSnap.exists()) {
+            payload.username = pSnap.data().username || null;
+            payload.currentlyPlaying = pSnap.data().currentlyPlaying || null;
+          }
+        }
+      } catch {}
+      set(presenceRef, payload);
       onDisconnect(presenceRef).remove();
     }
   });
+
+  // Keep presence payload fresh when currentlyPlaying changes
+  window._fluxUpdatePresence = async (currentlyPlaying) => {
+    try {
+      const user = auth.currentUser;
+      if (!user || user.isAnonymous) return;
+      const pSnap = await getDoc(doc(db, 'profiles', user.uid));
+      const username = pSnap.exists() ? pSnap.data().username : null;
+      set(presenceRef, { online: true, timestamp: serverTimestamp(), uid: user.uid, username, currentlyPlaying: currentlyPlaying || null });
+    } catch {}
+  };
 
   onValue(ref(rtdb, 'presence'), (snap) => {
     _onlineCount = snap.exists() ? Object.keys(snap.val()).length : 0;
@@ -105,6 +140,58 @@ export function initPresence() {
     // check and update peak
     if (_onlineCount > 0) updatePeakOnline(_onlineCount);
   });
+
+  // Listen for force-refresh signal targeted at this user OR global
+  const _handleRefreshSnap = (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.val();
+    if (!data || !data.triggeredAt) return;
+    const age = Date.now() - new Date(data.triggeredAt).getTime();
+    if (age < 10000) setTimeout(() => location.reload(), 800);
+  };
+
+  onAuthStateChanged(auth, (user) => {
+    if (!user || user.isAnonymous) return;
+    onValue(ref(rtdb, `forceRefresh/${user.uid}`), _handleRefreshSnap);
+  });
+
+  // Global refresh (affects everyone including guests)
+  let _lastGlobalRefresh = null;
+  onValue(ref(rtdb, 'forceRefreshAll'), (snap) => {
+    if (!snap.exists()) return;
+    const data = snap.val();
+    if (!data?.triggeredAt) return;
+    if (data.triggeredAt === _lastGlobalRefresh) return;
+    _lastGlobalRefresh = data.triggeredAt;
+    const age = Date.now() - new Date(data.triggeredAt).getTime();
+    if (age < 10000) setTimeout(() => location.reload(), 800);
+  });
+}
+
+/* ===================== FORCE REFRESH ===================== */
+export async function forceRefreshUser(targetUid) {
+  const user = auth.currentUser;
+  if (!user || user.uid !== 'zEy6TO5ligf2um4rssIZs9C9X7f2') return { ok: false, error: 'Admin only.' };
+  try {
+    await set(ref(rtdb, `forceRefresh/${targetUid}`), {
+      triggeredAt: new Date().toISOString(),
+      by: user.uid,
+    });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
+export async function forceRefreshAll() {
+  const user = auth.currentUser;
+  if (!user || user.uid !== 'zEy6TO5ligf2um4rssIZs9C9X7f2') return { ok: false, error: 'Admin only.' };
+  try {
+    // Write to a global refresh node — all clients listen to this too (see initPresence)
+    await set(ref(rtdb, 'forceRefreshAll'), {
+      triggeredAt: new Date().toISOString(),
+      by: user.uid,
+    });
+    return { ok: true };
+  } catch (e) { return { ok: false, error: e.message }; }
 }
 
 /* ===================== GLOBAL FAV COUNT ===================== */
@@ -372,6 +459,10 @@ export async function setCurrentlyPlaying(gameId, gameTitle) {
     await updateDoc(doc(db, 'profiles', user.uid), {
       currentlyPlaying: { id: gameId, title: gameTitle, since: new Date().toISOString() }
     });
+    // Also update the RTDB presence node so mod panel sees it live
+    if (typeof window._fluxUpdatePresence === 'function') {
+      window._fluxUpdatePresence({ id: gameId, title: gameTitle, since: new Date().toISOString() });
+    }
   } catch {}
 }
 
@@ -380,6 +471,9 @@ export async function clearCurrentlyPlaying() {
   if (!user || user.isAnonymous) return;
   try {
     await updateDoc(doc(db, 'profiles', user.uid), { currentlyPlaying: null });
+    if (typeof window._fluxUpdatePresence === 'function') {
+      window._fluxUpdatePresence(null);
+    }
   } catch {}
 }
 
@@ -1461,6 +1555,21 @@ export function initAuthUI(onUserChange) {
         <h3 style="font-family:'Bebas Neue',sans-serif;font-size:26px;margin:0;color:#111827;">Mod Panel</h3>
       </div>
 
+      <!-- ── ONLINE USERS ── -->
+      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">👥 Online Users</div>
+      <div style="margin-bottom:4px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <span id="mod-online-summary" style="font-size:12px;color:#6b7280;">Loading...</span>
+          <div style="display:flex;gap:6px;">
+            <button id="mod-refresh-all-btn" style="padding:5px 12px;background:#ef4444;color:white;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:11px;">🔄 Refresh All</button>
+            <button id="mod-reload-users-btn" style="padding:5px 10px;background:#f3f4f6;color:#6b7280;border:1px solid #e5e7eb;border-radius:8px;font-weight:700;cursor:pointer;font-size:11px;">↺ Reload List</button>
+          </div>
+        </div>
+        <div id="mod-online-users-list" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;"></div>
+      </div>
+
+      <hr style="border:none;border-top:1px solid rgba(0,0,0,0.07);margin:16px 0;">
+
       <!-- ── INCIDENT BANNER ── -->
       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;">📢 Incident Banner</div>
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:4px;">
@@ -1925,7 +2034,133 @@ export function initAuthUI(onUserChange) {
       });
     }
 
-    // ── Incident banner controls ──
+    // ── Online Users ──
+    const renderOnlineUsers = async () => {
+      const list = document.getElementById('mod-online-users-list');
+      const summary = document.getElementById('mod-online-summary');
+      if (!list) return;
+      list.innerHTML = '<div style="font-size:12px;color:#9ca3af;padding:8px 0;">Loading...</div>';
+
+      try {
+        const presSnap = await new Promise(resolve => {
+          const presRef = ref(rtdb, 'presence');
+          onValue(presRef, resolve, { onlyOnce: true });
+        });
+
+        const sessions = presSnap.exists() ? presSnap.val() : {};
+        const sessionList = Object.values(sessions);
+
+        // Deduplicate by uid (one user may have multiple tabs)
+        const byUid = {};
+        const anonymous = [];
+        sessionList.forEach(s => {
+          if (s.uid) {
+            if (!byUid[s.uid]) byUid[s.uid] = s;
+          } else {
+            anonymous.push(s);
+          }
+        });
+
+        const namedUsers = Object.values(byUid);
+        const totalSessions = sessionList.length;
+        const namedCount = namedUsers.length;
+        const anonCount = totalSessions - namedCount;
+
+        if (summary) summary.textContent = `${totalSessions} session${totalSessions !== 1 ? 's' : ''} — ${namedCount} signed in, ${anonCount} anonymous`;
+
+        list.innerHTML = '';
+
+        if (!sessionList.length) {
+          list.innerHTML = '<div style="font-size:12px;color:#9ca3af;text-align:center;padding:12px 0;">No one online right now</div>';
+          return;
+        }
+
+        // Render named users first
+        namedUsers.forEach(s => {
+          const item = document.createElement('div');
+          item.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f9fafb;border-radius:10px;border:1px solid rgba(0,0,0,0.06);';
+          const playing = s.currentlyPlaying?.title;
+          const profileLink = s.username ? `profile.html?user=${s.username}` : null;
+          item.innerHTML = `
+            <span style="width:8px;height:8px;border-radius:50%;background:#22c55e;flex-shrink:0;"></span>
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:700;color:#111827;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                ${profileLink ? `<a href="${profileLink}" target="_blank" style="color:#3a7dff;text-decoration:none;">@${s.username}</a>` : (s.username ? `@${s.username}` : `uid: ${s.uid.slice(0,8)}…`)}
+              </div>
+              <div style="font-size:11px;color:#6b7280;margin-top:1px;">
+                ${playing ? `🎮 Playing <strong style="color:#111827;">${playing}</strong>` : '🏠 Browsing'}
+              </div>
+            </div>
+            <button class="mod-force-refresh-btn" data-uid="${s.uid}" data-name="${s.username || s.uid.slice(0,8)}"
+              style="padding:4px 10px;background:#3a7dff;color:white;border:none;border-radius:7px;font-weight:700;cursor:pointer;font-size:11px;flex-shrink:0;">
+              🔄
+            </button>
+          `;
+          list.appendChild(item);
+        });
+
+        // Render anonymous sessions
+        if (anonCount > 0) {
+          const anonItem = document.createElement('div');
+          anonItem.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 10px;background:#f9fafb;border-radius:10px;border:1px solid rgba(0,0,0,0.06);opacity:0.6;';
+          anonItem.innerHTML = `
+            <span style="width:8px;height:8px;border-radius:50%;background:#9ca3af;flex-shrink:0;"></span>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:600;color:#6b7280;">${anonCount} anonymous session${anonCount !== 1 ? 's' : ''}</div>
+              <div style="font-size:11px;color:#9ca3af;">Guests / not signed in</div>
+            </div>
+          `;
+          list.appendChild(anonItem);
+        }
+
+        // Wire force-refresh buttons
+        list.querySelectorAll('.mod-force-refresh-btn').forEach(btn => {
+          btn.addEventListener('click', async () => {
+            const uid = btn.dataset.uid;
+            const name = btn.dataset.name;
+            btn.textContent = '…'; btn.disabled = true;
+            const result = await forceRefreshUser(uid);
+            if (result.ok) {
+              btn.textContent = '✓'; btn.style.background = '#22c55e';
+              const modMsg = document.getElementById('mod-msg');
+              if (modMsg) { modMsg.style.color='#22c55e'; modMsg.textContent=`✓ Refresh sent to @${name}`; modMsg.style.display='block'; setTimeout(()=>modMsg.style.display='none',2500); }
+            } else {
+              btn.textContent = '✗'; btn.style.background = '#ef4444';
+              setTimeout(() => { btn.textContent = '🔄'; btn.style.background = '#3a7dff'; btn.disabled = false; }, 2000);
+            }
+          });
+        });
+
+      } catch (e) {
+        list.innerHTML = '<div style="font-size:12px;color:#ef4444;padding:8px 0;">Failed to load presence data.</div>';
+      }
+    };
+
+    renderOnlineUsers();
+
+    document.getElementById('mod-reload-users-btn')?.addEventListener('click', renderOnlineUsers);
+
+    document.getElementById('mod-refresh-all-btn')?.addEventListener('click', async () => {
+      const btn = document.getElementById('mod-refresh-all-btn');
+      const modMsg = document.getElementById('mod-msg');
+      btn.textContent = '…'; btn.disabled = true;
+      const result = await forceRefreshAll();
+      btn.textContent = '🔄 Refresh All'; btn.disabled = false;
+      if (modMsg) {
+        modMsg.style.color = result.ok ? '#22c55e' : '#ef4444';
+        modMsg.textContent = result.ok ? '✓ Refresh sent to all users!' : result.error;
+        modMsg.style.display = 'block';
+        setTimeout(() => modMsg.style.display = 'none', 2500);
+      }
+    });
+
+    // Live-update the list every 15s while modal is open
+    const _onlineListInterval = setInterval(() => {
+      if (modModal.style.display !== 'none') renderOnlineUsers();
+      else clearInterval(_onlineListInterval);
+    }, 15000);
+
+
     document.getElementById('mod-banner-show-btn')?.addEventListener('click', async () => {
       const msg = document.getElementById('mod-banner-msg').value.trim();
       const type = document.getElementById('mod-banner-type').value;

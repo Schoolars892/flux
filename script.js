@@ -250,13 +250,6 @@ const GAMES = [
   thumb: 'assets/hole-io.png',
   url: 'https://nxtcoreee3.github.io/Hole.io/',
   desc: 'Control a black hole, swallow everything, and grow bigger than your rivals.'
-},
-{
-  id: 'bloxd-io',
-  title: 'Bloxd.io',
-  thumb: 'assets/bloxd-io.png',
-  url: 'https://bloxd.io',
-  desc: 'Build, explore, and play in a multiplayer block world. (Hosted by Bloxd)'
 }
 ];
 

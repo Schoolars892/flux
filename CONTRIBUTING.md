@@ -13,7 +13,8 @@ Copy this template:
   thumb: 'assets/game-image.png',
   url: 'https://your-game-link/',
   desc: 'Short description of the game.'
-},```
+},
+```
 
 # Fill in the details:
 

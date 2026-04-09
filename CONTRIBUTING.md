@@ -4,7 +4,7 @@ Thanks for wanting to contribute to this game site!
 
 ## 📌 How to Add a Game
 
-1. Copy this template:
+Copy this template:
 
 ```js
 {
@@ -13,7 +13,7 @@ Thanks for wanting to contribute to this game site!
   thumb: 'assets/game-image.png',
   url: 'https://your-game-link/',
   desc: 'Short description of the game.'
-},
+},´´´
 
 # Fill in the details:
 

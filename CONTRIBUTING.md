@@ -11,7 +11,7 @@ Copy this template:
   id: 'game-id',
   title: 'Game Title',
   thumb: 'assets/game-image.png',
-  url: 'https://your-game-link/',
+  url: 'https://yourname.github.io/game_name',
   desc: 'Short description of the game.'
 },
 ```

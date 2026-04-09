@@ -141,30 +141,36 @@ export function initPresence() {
     if (_onlineCount > 0) updatePeakOnline(_onlineCount);
   });
 
-  // Listen for force-refresh signal targeted at this user OR global
-  const _handleRefreshSnap = (snap) => {
-    if (!snap.exists()) return;
-    const data = snap.val();
-    if (!data || !data.triggeredAt) return;
-    const age = Date.now() - new Date(data.triggeredAt).getTime();
-    if (age < 10000) setTimeout(() => location.reload(), 800);
+  // Listen for force-refresh signals — guarded so only one reload ever fires
+  let _lastSeenRefresh = null;
+  let _refreshListenerAttached = false;
+  let _reloadScheduled = false;
+
+  const _handleRefresh = (triggeredAt) => {
+    if (!triggeredAt) return;
+    if (triggeredAt === _lastSeenRefresh) return; // already handled this exact signal
+    _lastSeenRefresh = triggeredAt;
+    const age = Date.now() - new Date(triggeredAt).getTime();
+    if (age < 10000 && !_reloadScheduled) {
+      _reloadScheduled = true;
+      setTimeout(() => location.reload(), 800);
+    }
   };
 
+  // Per-user refresh — only attach the RTDB listener once
   onAuthStateChanged(auth, (user) => {
-    if (!user || user.isAnonymous) return;
-    onValue(ref(rtdb, `forceRefresh/${user.uid}`), _handleRefreshSnap);
+    if (!user || user.isAnonymous || _refreshListenerAttached) return;
+    _refreshListenerAttached = true;
+    onValue(ref(rtdb, `forceRefresh/${user.uid}`), (snap) => {
+      if (!snap.exists()) return;
+      _handleRefresh(snap.val()?.triggeredAt);
+    });
   });
 
-  // Global refresh (affects everyone including guests)
-  let _lastGlobalRefresh = null;
+  // Global refresh — affects everyone including guests
   onValue(ref(rtdb, 'forceRefreshAll'), (snap) => {
     if (!snap.exists()) return;
-    const data = snap.val();
-    if (!data?.triggeredAt) return;
-    if (data.triggeredAt === _lastGlobalRefresh) return;
-    _lastGlobalRefresh = data.triggeredAt;
-    const age = Date.now() - new Date(data.triggeredAt).getTime();
-    if (age < 10000) setTimeout(() => location.reload(), 800);
+    _handleRefresh(snap.val()?.triggeredAt);
   });
 }
 

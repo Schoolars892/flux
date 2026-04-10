@@ -2,7 +2,7 @@
 
 Thanks for wanting to contribute to this game site!
 
-## 📌 How to Add a Game
+# 📌 How to Add a Game
 
 Copy this template:
 

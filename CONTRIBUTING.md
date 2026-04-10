@@ -16,7 +16,7 @@ Copy this template:
 },
 ```
 
-# Fill in the details:
+# 🖊️ Fill in the details:
 
 id → lowercase with dashes (example: drift-boss)
 

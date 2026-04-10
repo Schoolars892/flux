@@ -3,7 +3,7 @@
    favorites (cloud+local), dark mode, toasts, recently played, new badge, stats button
 */
 
-import { initAuthUI, loadCloudFavs, saveCloudFavs, syncProfileFavs, syncProfileRecents, initPresence, initStatsButton, trackDailyVisitor, initServerStatus, initBroadcast, initChaos, initJumpscare, initCookieConsent, trackLoginStreak, trackTimeOnSite, trackGamePlay, fetchHotGame, fetchGameFirstSeen, fetchAllGameStats, setCurrentlyPlaying, clearCurrentlyPlaying, rateGame, getUserRating, reportGame, checkFirestoreHealth, fetchGameDetail, getAiGameDescription, getGameReviews, submitReview, addReviewComment, likeReview, deleteReview, fetchGamePricing, getUnlockedGames, unlockGame, SPIN_SEGMENTS, getLastSpin, spinWheel, giftPointsToUser, redeemCode, createRewardCode, getRewardCodes, deactivateRewardCode, initIncidentBanner, setServiceStatus, autoCheckServiceHealth, setIncidentBanner } from './firebase-auth.js';
+import { initAuthUI, loadCloudFavs, saveCloudFavs, syncProfileFavs, syncProfileRecents, initPresence, initStatsButton, trackDailyVisitor, initServerStatus, initBroadcast, initChaos, initJumpscare, initCookieConsent, trackLoginStreak, trackTimeOnSite, trackGamePlay, fetchHotGame, fetchGameFirstSeen, fetchAllGameStats, setCurrentlyPlaying, clearCurrentlyPlaying, rateGame, getUserRating, reportGame, checkFirestoreHealth, fetchGameDetail, getAiGameDescription, getGameReviews, submitReview, addReviewComment, likeReview, deleteReview, fetchGamePricing, getUnlockedGames, unlockGame, SPIN_SEGMENTS, getLastSpin, spinWheel, giftPointsToUser, redeemCode, createRewardCode, getRewardCodes, deactivateRewardCode, initIncidentBanner, setServiceStatus, autoCheckServiceHealth, setIncidentBanner, checkNoAds, purchaseNoAds, NO_ADS_COST } from './firebase-auth.js';
 
 const GAMES = [
   {
@@ -663,6 +663,168 @@ function debounce(fn, wait=120) {
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), wait); };
 }
 
+/* ===================== ADS ===================== */
+let _adsDisabled = false;
+
+async function initAds() {
+  // Only show on pages that have the game grid (index)
+  if (!document.getElementById('game-grid')) return;
+
+  // Check cache first so there's no flash
+  if (localStorage.getItem('flux_no_ads') === '1') {
+    _adsDisabled = true;
+    return;
+  }
+
+  // Check Firestore for signed-in users
+  try {
+    const noAds = await checkNoAds();
+    if (noAds) {
+      _adsDisabled = true;
+      localStorage.setItem('flux_no_ads', '1');
+      return;
+    }
+  } catch {}
+
+  // Render the banner
+  const slot = document.getElementById('flux-ad-banner');
+  if (!slot) return;
+
+  slot.innerHTML = `
+    <div id="flux-ad-inner" style="
+      position:relative;
+      max-width:860px;
+      margin:0 auto 28px;
+      border-radius:16px;
+      overflow:hidden;
+      box-shadow:0 4px 20px rgba(0,0,0,0.08);
+    ">
+      <img
+        src="Ads/tweakbreak-ad.png"
+        alt="Advertisement"
+        style="width:100%;height:auto;display:block;border-radius:16px;cursor:pointer;"
+        onclick="window.open('https://tweakbreak.com','_blank','noopener')"
+      >
+      <button id="ad-close-btn" title="Remove ads" style="
+        position:absolute;top:8px;right:8px;
+        width:28px;height:28px;border-radius:50%;
+        background:rgba(0,0,0,0.55);border:none;
+        color:#fff;font-size:14px;line-height:1;
+        cursor:pointer;display:flex;align-items:center;justify-content:center;
+        backdrop-filter:blur(4px);transition:background 0.15s;
+      ">✕</button>
+    </div>
+  `;
+
+  document.getElementById('ad-close-btn').addEventListener('click', () => showNoAdsModal());
+}
+
+function showNoAdsModal() {
+  document.getElementById('flux-no-ads-modal')?.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'flux-no-ads-modal';
+  overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.45);backdrop-filter:blur(6px);padding:20px;box-sizing:border-box;';
+
+  const renderContent = (balance) => {
+    const isLoggedIn = !!window._currentUserUid && window._currentUserUid !== null;
+    const hasEnough = isLoggedIn && balance >= NO_ADS_COST;
+
+    if (!isLoggedIn) {
+      return `
+        <div style="text-align:center;padding:8px 0 4px;">
+          <div style="font-size:48px;margin-bottom:12px;">🔒</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#111827;margin-bottom:6px;">Sign in required</div>
+          <div style="font-size:13px;color:#6b7280;margin-bottom:24px;">You need to be signed in to disable ads.</div>
+          <button id="no-ads-cancel" style="width:100%;padding:11px;background:#f3f4f6;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:#6b7280;">Cancel</button>
+        </div>`;
+    }
+
+    return `
+      <div style="text-align:center;padding:8px 0 4px;">
+        <div style="font-size:48px;margin-bottom:12px;">🔒</div>
+        <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#111827;margin-bottom:4px;">No Ads</div>
+        <div style="font-size:32px;font-weight:800;color:#3a7dff;margin-bottom:4px;">${NO_ADS_COST.toLocaleString()} pts</div>
+        <div style="font-size:13px;color:#6b7280;margin-bottom:6px;">
+          Your balance: <span style="font-weight:700;color:${hasEnough ? '#22c55e' : '#ef4444'};">${balance.toLocaleString()} pts</span>
+        </div>
+        <div style="font-size:12px;color:#9ca3af;margin-bottom:20px;">One-time purchase. Permanent, no expiry.</div>
+        ${hasEnough
+          ? `<button id="no-ads-buy" style="width:100%;padding:13px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:8px;">Remove Ads Forever</button>`
+          : `<button id="no-ads-earn" style="width:100%;padding:13px;background:linear-gradient(135deg,#f59e0b,#ef4444);color:white;border:none;border-radius:12px;font-size:15px;font-weight:800;cursor:pointer;margin-bottom:8px;">💡 How to earn more points</button>`
+        }
+        <button id="no-ads-cancel" style="width:100%;padding:11px;background:#f3f4f6;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;color:#6b7280;">Cancel</button>
+        <p id="no-ads-msg" style="font-size:12px;margin:10px 0 0;display:none;"></p>
+      </div>`;
+  };
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:20px;padding:28px 24px;width:100%;max-width:340px;box-shadow:0 30px 80px rgba(0,0,0,0.2);position:relative;">
+      <button id="no-ads-close-x" style="position:absolute;top:12px;right:12px;background:none;border:none;font-size:18px;cursor:pointer;color:#9ca3af;">✕</button>
+      <div id="no-ads-body">
+        <div style="text-align:center;padding:20px 0;color:#9ca3af;font-size:13px;">Loading...</div>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  document.getElementById('no-ads-close-x').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+
+  // Load balance then render
+  (async () => {
+    let balance = 0;
+    if (window._currentUserUid) {
+      try {
+        const { getFirestore, doc: fd, getDoc: gd } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+        const { getApp } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+        const snap = await gd(fd(getFirestore(getApp()), 'profiles', window._currentUserUid));
+        if (snap.exists()) balance = snap.data().points || 0;
+      } catch {}
+    }
+
+    document.getElementById('no-ads-body').innerHTML = renderContent(balance);
+
+    document.getElementById('no-ads-cancel')?.addEventListener('click', () => overlay.remove());
+
+    document.getElementById('no-ads-earn')?.addEventListener('click', () => {
+      overlay.remove();
+      // Open spin wheel if available, otherwise show toast
+      if (typeof window.openSpinWheel === 'function') window.openSpinWheel();
+      else showToast('Earn points by logging in daily, playing games, and spinning the wheel!', 'info');
+    });
+
+    document.getElementById('no-ads-buy')?.addEventListener('click', async () => {
+      const btn = document.getElementById('no-ads-buy');
+      const msgEl = document.getElementById('no-ads-msg');
+      btn.textContent = 'Processing…'; btn.disabled = true;
+
+      const result = await purchaseNoAds();
+
+      if (result.ok) {
+        _adsDisabled = true;
+        localStorage.setItem('flux_no_ads', '1');
+        // Hide the banner immediately
+        const slot = document.getElementById('flux-ad-banner');
+        if (slot) { slot.style.opacity = '0'; slot.style.transition = 'opacity 0.3s'; setTimeout(() => { slot.innerHTML = ''; slot.style.opacity = ''; }, 300); }
+        overlay.innerHTML = `
+          <div style="background:#fff;border-radius:20px;padding:36px 24px;width:100%;max-width:340px;box-shadow:0 30px 80px rgba(0,0,0,0.2);text-align:center;">
+            <div style="font-size:56px;margin-bottom:12px;">🎉</div>
+            <div style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:#111827;margin-bottom:6px;">Ads Removed!</div>
+            <div style="font-size:13px;color:#6b7280;margin-bottom:20px;">Thanks for supporting Flux. You'll never see ads again.</div>
+            <button onclick="this.closest('#flux-no-ads-modal').remove()" style="padding:11px 28px;background:#3a7dff;color:white;border:none;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;">Done</button>
+          </div>`;
+      } else if (result.error === 'not_logged_in') {
+        if (msgEl) { msgEl.style.display = 'block'; msgEl.style.color = '#ef4444'; msgEl.textContent = 'You must be signed in.'; }
+        btn.textContent = 'Remove Ads Forever'; btn.disabled = false;
+      } else {
+        if (msgEl) { msgEl.style.display = 'block'; msgEl.style.color = '#ef4444'; msgEl.textContent = result.error || 'Something went wrong.'; }
+        btn.textContent = 'Remove Ads Forever'; btn.disabled = false;
+      }
+    });
+  })();
+}
+
 /* ===================== INIT ===================== */
 document.addEventListener('DOMContentLoaded', () => {
   initCookieConsent();
@@ -679,6 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
   injectBuildNumber();
   showSocialBanner();
   initMobileWarning();
+  initAds();
 
   if (document.getElementById('quick-search')) {
     document.getElementById('quick-search').addEventListener('input', debounce(applyFilters, 120));
@@ -690,6 +853,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (user && !user.isAnonymous) {
       trackLoginStreak();
       trackTimeOnSite();
+      // Re-check no-ads status now that we're signed in
+      if (!_adsDisabled) {
+        const noAds = await checkNoAds();
+        if (noAds) {
+          _adsDisabled = true;
+          localStorage.setItem('flux_no_ads', '1');
+          const slot = document.getElementById('flux-ad-banner');
+          if (slot) slot.innerHTML = '';
+        }
+      }
       if (!sessionStorage.getItem('flux_welcomed')) {
         showToast(`Welcome back! 👋`, 'success');
         sessionStorage.setItem('flux_welcomed', '1');

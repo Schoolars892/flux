@@ -3644,6 +3644,39 @@ export async function deactivateRewardCode(code) {
   } catch {}
 }
 
+/* ===================== NO-ADS PURCHASE ===================== */
+export const NO_ADS_COST = 10000;
+
+export async function checkNoAds() {
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous) return false;
+  try {
+    const snap = await getDoc(doc(db, 'profiles', user.uid));
+    return snap.exists() ? (snap.data().noAds === true) : false;
+  } catch { return false; }
+}
+
+export async function purchaseNoAds() {
+  const user = auth.currentUser;
+  if (!user || user.isAnonymous) return { ok: false, error: 'not_logged_in' };
+  try {
+    const { runTransaction } = await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const profileRef = doc(db, 'profiles', user.uid);
+    let result = {};
+    await runTransaction(db, async tx => {
+      const snap = await tx.get(profileRef);
+      if (!snap.exists()) { result = { ok: false, error: 'Profile not found.' }; return; }
+      const data = snap.data();
+      if (data.noAds) { result = { ok: true, alreadyOwned: true }; return; }
+      const points = data.points || 0;
+      if (points < NO_ADS_COST) { result = { ok: false, error: 'not_enough_points', balance: points }; return; }
+      tx.update(profileRef, { points: points - NO_ADS_COST, noAds: true });
+      result = { ok: true, newBalance: points - NO_ADS_COST };
+    });
+    return result;
+  } catch (e) { return { ok: false, error: e.message }; }
+}
+
 /* ===================== CHAT LOCK ===================== */
 export function initChatLock(type, onLocked, onUnlocked) {
   // type: 'global' | 'dm'

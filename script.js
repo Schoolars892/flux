@@ -703,7 +703,7 @@ async function initAds() {
         src="Ads/tweakbreak-ad.png"
         alt="Advertisement"
         style="width:100%;height:auto;display:block;border-radius:16px;cursor:pointer;"
-        onclick="window.open('https://tweakbreak.com','_blank','noopener')"
+        onclick="window.open('https://discord.gg/tweakbreak-1443331342799601666','_blank','noopener')"
       >
       <button id="ad-close-btn" title="Remove ads" style="
         position:absolute;top:8px;right:8px;

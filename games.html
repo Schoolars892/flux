@@ -25,6 +25,93 @@
     .hot-badge { position:absolute;top:8px;left:8px;background:linear-gradient(135deg,#ef4444,#f59e0b);color:white;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:0.5px;z-index:2;box-shadow:0 2px 8px rgba(239,68,68,0.4);display:inline-block;width:fit-content; }
     .new-badge { position:absolute;top:8px;left:8px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;font-size:10px;font-weight:800;padding:3px 8px;border-radius:20px;letter-spacing:0.5px;z-index:2;box-shadow:0 2px 8px rgba(34,197,94,0.4);display:inline-block;width:fit-content; }
     .compat-badge { display:inline-flex;align-items:center;background:rgba(58,125,255,0.1);color:var(--accent);font-size:10px;font-weight:700;padding:2px 7px;border-radius:20px;border:1px solid rgba(58,125,255,0.2);cursor:help;position:relative;z-index:10; }
+
+    /* Slot machine */
+    .slot-reel {
+      width: 120px;
+      height: 160px;
+      border-radius: 16px;
+      border: 2px solid var(--glass-border);
+      background: var(--bg);
+      overflow: hidden;
+      position: relative;
+      box-shadow: inset 0 4px 12px rgba(0,0,0,0.1);
+    }
+    .slot-reel::before, .slot-reel::after {
+      content: '';
+      position: absolute;
+      left: 0; right: 0;
+      height: 40px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .slot-reel::before { top: 0; background: linear-gradient(to bottom, var(--bg), transparent); }
+    .slot-reel::after { bottom: 0; background: linear-gradient(to top, var(--bg), transparent); }
+    .slot-reel-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0s;
+    }
+    .slot-item {
+      width: 120px;
+      height: 160px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      flex-shrink: 0;
+    }
+    .slot-item img {
+      width: 80px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: 8px;
+      margin-bottom: 6px;
+    }
+    .slot-item-title {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      line-height: 1.3;
+    }
+    .slot-highlight {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      left: 0; right: 0;
+      height: 160px;
+      border: 2px solid var(--accent);
+      border-radius: 14px;
+      pointer-events: none;
+      z-index: 3;
+      box-shadow: 0 0 20px rgba(58,125,255,0.3);
+    }
+    .result-card {
+      background: var(--panel);
+      border: 1px solid var(--glass-border);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      text-align: left;
+      transition: transform 0.15s;
+      cursor: pointer;
+    }
+    .result-card:hover { transform: translateY(-2px); }
+    .match-bar {
+      height: 4px;
+      border-radius: 2px;
+      background: linear-gradient(90deg, #3a7dff, #8b5cf6);
+      margin-top: 6px;
+    }
+    @keyframes slot-spin {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-9999px); }
+    }
   </style>
   <style>
     @media (max-width: 768px) {
@@ -71,6 +158,26 @@
         <h2>⭐ Favourites</h2>
       </div>
       <div id="favourites-grid" class="grid"></div>
+    </section>
+
+    <!-- AI Game Picker -->
+    <section class="section" id="ai-picker-section">
+      <div style="background:linear-gradient(135deg,var(--panel) 0%,rgba(58,125,255,0.05) 100%);border:1px solid var(--glass-border);border-radius:20px;padding:24px;text-align:center;">
+        <div style="font-size:28px;margin-bottom:8px;">🎰</div>
+        <h2 style="font-family:'Bebas Neue',sans-serif;font-size:28px;color:var(--text);margin:0 0 6px;">AI Game Picker</h2>
+        <p style="font-size:13px;color:var(--muted);margin:0 0 16px;">Based on what players like you enjoy, we'll spin up 3 games you're likely to love.</p>
+        <button id="ai-spin-btn" style="padding:12px 28px;background:linear-gradient(135deg,#3a7dff,#8b5cf6);color:white;border:none;border-radius:20px;font-weight:700;font-size:15px;cursor:pointer;transition:transform 0.1s,opacity 0.15s;box-shadow:0 4px 20px rgba(58,125,255,0.35);">
+          🎰 Spin for me
+        </button>
+        <div id="slot-machine" style="display:none;margin-top:20px;">
+          <div style="display:flex;justify-content:center;gap:12px;margin-bottom:16px;">
+            <div class="slot-reel" id="reel-0"></div>
+            <div class="slot-reel" id="reel-1"></div>
+            <div class="slot-reel" id="reel-2"></div>
+          </div>
+          <div id="slot-results" style="display:none;"></div>
+        </div>
+      </div>
     </section>
 
     <!-- All Games -->

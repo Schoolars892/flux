@@ -840,6 +840,7 @@ document.addEventListener('DOMContentLoaded', () => {
   trackDailyVisitor();
   injectBuildNumber();
   showSocialBanner();
+  initAIPicker();
   initMobileWarning();
   initAds();
 
@@ -1060,6 +1061,247 @@ function initMobileWarning() {
     showWarning();
   })();
 }
+
+/* ===================== AI GAME PICKER ===================== */
+async function initAIPicker() {
+  const btn = document.getElementById('ai-spin-btn');
+  if (!btn) return;
+
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    btn.textContent = '🎲 Thinking...';
+    document.getElementById('slot-machine').style.display = 'block';
+    document.getElementById('slot-results').style.display = 'none';
+
+    // Get recommendations based on collaborative filtering
+    const recommendations = await getAIRecommendations();
+
+    // Run the slot machine animation then show results
+    await runSlotMachine(recommendations);
+
+    btn.disabled = false;
+    btn.textContent = '🎰 Spin again';
+  });
+}
+
+async function getAIRecommendations() {
+  // Get what the current user has played
+  const myRecent = loadRecent(); // local recent games
+  const myFavs = _favsCache || [];
+  const myGames = [...new Set([...myFavs, ...myRecent])];
+
+  // Fetch all game stats to find co-play patterns
+  const stats = _allGameStats || {};
+
+  // Score each game based on:
+  // 1. Players who played games I like also played X (collaborative filtering)
+  // 2. Hot game bonus
+  // 3. New game bonus
+  // 4. Exclude games I've already played a lot
+
+  const scores = {};
+  const playedSet = new Set(myGames);
+
+  // Simple collaborative filtering: find games played by fans of my games
+  // We approximate this using play counts as a proxy for popularity overlap
+  GAMES.forEach(g => {
+    if (playedSet.has(g.id)) {
+      scores[g.id] = (scores[g.id] || 0) - 50; // penalise already played
+      return;
+    }
+    const gStats = stats[g.id] || {};
+    const plays = gStats.plays || 0;
+    const rating = gStats.ratingCount ? gStats.ratingTotal / gStats.ratingCount : 0;
+    const isHot = _hotGameId === g.id;
+    const isNew = _newGameCache[g.id] && (Date.now() - new Date(_newGameCache[g.id]).getTime() < 24 * 60 * 60 * 1000);
+
+    // Base score from plays and rating
+    let score = Math.min(plays * 2, 60) + (rating * 8);
+
+    // Bonus for hot/new
+    if (isHot) score += 25;
+    if (isNew) score += 15;
+
+    // Collaborative signal: if user plays action games, boost similar ones
+    // We use a simple category heuristic based on game IDs
+    const actionGames = ['drive-mad', 'crazy-motorcycle', 'crazy-cars', 'moto-x3m', 'drift-boss'];
+    const casualGames = ['cookie-clicker', 'monkey-mart', 'paper-io'];
+    const skillGames = ['geometry-dash-lite', 'stickman-hook', 'polytrack', '8-ball-classic', 'table-tennis-world-tour'];
+
+    const myActionCount = myGames.filter(id => actionGames.includes(id)).length;
+    const myCasualCount = myGames.filter(id => casualGames.includes(id)).length;
+    const mySkillCount = myGames.filter(id => skillGames.includes(id)).length;
+
+    if (actionGames.includes(g.id)) score += myActionCount * 12;
+    if (casualGames.includes(g.id)) score += myCasualCount * 12;
+    if (skillGames.includes(g.id)) score += mySkillCount * 12;
+
+    // Add some randomness so it's not always the same
+    score += Math.random() * 20;
+
+    scores[g.id] = score;
+  });
+
+  // Sort by score, take top games
+  const ranked = GAMES
+    .filter(g => !playedSet.has(g.id) || scores[g.id] > 0)
+    .sort((a, b) => (scores[b.id] || 0) - (scores[a.id] || 0));
+
+  // If we don't have enough unplayed games, include some played ones
+  const pool = ranked.length >= 3 ? ranked : [...ranked, ...GAMES.filter(g => playedSet.has(g.id))];
+
+  // Pick top 3 with match percentages
+  const top3 = pool.slice(0, 3);
+  const maxScore = scores[top3[0]?.id] || 1;
+
+  return top3.map(game => ({
+    game,
+    matchPct: Math.min(99, Math.max(55, Math.round(((scores[game.id] || 0) / maxScore) * 99))),
+    reason: getRecommendationReason(game.id, myGames, stats),
+  }));
+}
+
+function getRecommendationReason(gameId, myGames, stats) {
+  const actionGames = ['drive-mad', 'crazy-motorcycle', 'crazy-cars', 'moto-x3m', 'drift-boss'];
+  const casualGames = ['cookie-clicker', 'monkey-mart', 'paper-io'];
+  const skillGames = ['geometry-dash-lite', 'stickman-hook', 'polytrack', '8-ball-classic', 'table-tennis-world-tour'];
+
+  const myAction = myGames.some(id => actionGames.includes(id));
+  const myCasual = myGames.some(id => casualGames.includes(id));
+  const mySkill = myGames.some(id => skillGames.includes(id));
+
+  if (actionGames.includes(gameId) && myAction) return 'Players who like racing games love this';
+  if (casualGames.includes(gameId) && myCasual) return 'Popular with fans of casual games';
+  if (skillGames.includes(gameId) && mySkill) return 'Skill game players rate this highly';
+  if (_hotGameId === gameId) return 'Currently the hottest game on Flux';
+  const plays = stats[gameId]?.plays || 0;
+  if (plays > 10) return `Played ${plays} times by Flux players`;
+  return 'Trending with players like you';
+}
+
+async function runSlotMachine(recommendations) {
+  const reels = [
+    document.getElementById('reel-0'),
+    document.getElementById('reel-1'),
+    document.getElementById('reel-2'),
+  ];
+
+  // Build a shuffled pool of all games for spinning illusion
+  const allGames = [...GAMES].sort(() => Math.random() - 0.5);
+
+  // Set up each reel with many items + the final result at the end
+  reels.forEach((reel, i) => {
+    reel.innerHTML = '';
+    const inner = document.createElement('div');
+    inner.className = 'slot-reel-inner';
+    inner.id = `reel-inner-${i}`;
+
+    // Add highlight indicator
+    const highlight = document.createElement('div');
+    highlight.className = 'slot-highlight';
+    reel.appendChild(highlight);
+
+    // Fill with random games (for spin animation)
+    const spinItems = [...allGames, ...allGames, ...allGames, recommendations[i].game];
+    spinItems.forEach(g => {
+      const item = document.createElement('div');
+      item.className = 'slot-item';
+      item.innerHTML = `
+        <img src="${g.thumb}" alt="${g.title}">
+        <div class="slot-item-title">${g.title}</div>
+      `;
+      inner.appendChild(item);
+    });
+
+    reel.appendChild(inner);
+  });
+
+  // Animate each reel with staggered stops
+  const ITEM_HEIGHT = 160;
+  const spinDurations = [2200, 2800, 3400];
+
+  const spinPromises = reels.map((reel, i) => new Promise(resolve => {
+    const inner = document.getElementById(`reel-inner-${i}`);
+    const totalItems = inner.children.length;
+    const targetIndex = totalItems - 1; // last item is our result
+
+    // Fast scroll animation using CSS
+    let currentPos = 0;
+    const targetPos = targetIndex * ITEM_HEIGHT;
+    const startTime = performance.now();
+    const duration = spinDurations[i];
+
+    const animate = (now) => {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+
+      // Ease out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      currentPos = eased * targetPos;
+
+      inner.style.transform = `translateY(-${currentPos}px)`;
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        inner.style.transform = `translateY(-${targetPos}px)`;
+        resolve();
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }));
+
+  await Promise.all(spinPromises);
+
+  // Flash the reels
+  reels.forEach(reel => {
+    reel.style.boxShadow = '0 0 20px rgba(58,125,255,0.6)';
+    reel.style.borderColor = 'var(--accent)';
+    setTimeout(() => {
+      reel.style.boxShadow = '';
+      reel.style.borderColor = 'var(--glass-border)';
+    }, 600);
+  });
+
+  // Show results
+  await new Promise(r => setTimeout(r, 400));
+  showSlotResults(recommendations);
+}
+
+function showSlotResults(recommendations) {
+  const resultsEl = document.getElementById('slot-results');
+  resultsEl.style.display = 'block';
+  resultsEl.innerHTML = `
+    <div style="font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Your matches</div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      ${recommendations.map(({ game, matchPct, reason }) => `
+        <div class="result-card" onclick="window._openGameFromPicker('${game.id}')">
+          <img src="${game.thumb}" alt="${game.title}" style="width:64px;height:40px;object-fit:cover;border-radius:8px;flex-shrink:0;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:14px;font-weight:700;color:var(--text);">${game.title}</div>
+            <div style="font-size:11px;color:var(--muted);margin-top:2px;">${reason}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px;">
+              <div class="match-bar" style="width:${matchPct}%;"></div>
+              <span style="font-size:11px;font-weight:700;color:var(--accent);white-space:nowrap;">${matchPct}% match</span>
+            </div>
+          </div>
+          <button style="padding:7px 14px;background:var(--accent);color:white;border:none;border-radius:20px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0;">Play</button>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+window._openGameFromPicker = (gameId) => {
+  const game = GAMES.find(g => g.id === gameId);
+  if (!game) return;
+  addRecent(game.id);
+  renderRecentSection();
+  trackGamePlay(game.id, game.title);
+  setCurrentlyPlaying(game.id, game.title);
+  openPlayModal(game.url, game.title);
+};
 
 function showSocialBanner() {
   // Don't show on social page itself

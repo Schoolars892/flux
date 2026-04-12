@@ -1316,6 +1316,10 @@ function showBanOverlay(reason, bannedAt) {
 }
 
 export function initAuthUI(onUserChange) {
+  // Handle redirect result from GitHub/Google sign-in on Safari
+  import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js").then(({ getRedirectResult }) => {
+    getRedirectResult(auth).catch(() => {});
+  });
   const rightActions = document.querySelector('.right-actions');
   if (!rightActions) return;
 
@@ -1429,8 +1433,20 @@ export function initAuthUI(onUserChange) {
     catch (err) { showAuthError(err.message); }
   });
   document.getElementById('github-signin-btn').addEventListener('click', async () => {
-    try { await signInWithGitHub(); modal.style.display = 'none'; }
-    catch (err) { showAuthError(err.message); }
+    try {
+      await signInWithGitHub();
+      modal.style.display = 'none';
+    } catch (err) {
+      // If popup was blocked, try redirect
+      if (err.code === 'auth/popup-blocked' || err.code === 'auth/popup-closed-by-user') {
+        try {
+          const { signInWithRedirect } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+          await signInWithRedirect(auth, githubProvider);
+        } catch (e) { showAuthError(e.message); }
+      } else {
+        showAuthError(err.message);
+      }
+    }
   });
   document.getElementById('email-signin-btn').addEventListener('click', async () => {
     const email = document.getElementById('auth-email').value;

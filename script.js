@@ -250,6 +250,13 @@ const GAMES = [
   thumb: 'assets/hole-io.png',
   url: 'https://nxtcoreee3.github.io/Hole.io/',
   desc: 'Control a black hole, swallow everything, and grow bigger than your rivals.'
+},
+{
+  id: 'talking-tom-cat',
+  title: 'Talking Tom Cat',
+  thumb: 'assets/talking-tom-cat.png',
+  url: 'https://gamejolt.net/?token=bqzW8QdcQDbcDNK4Yfp6BAYtRazsrM',
+  desc: 'Play the original Talking Tom game through an emulator and interact with the classic pet. (Hosted by GameJolt)'
 }
 ];
 

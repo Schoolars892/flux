@@ -26,7 +26,8 @@ If you enjoy Flux, you can support the project:
 ☕ Buy us a coffee on Ko-Fi
 
 ⸻
-## Star History
+
+# Star History
 
 <a href="https://www.star-history.com/?repos=nxtcoreee3%2FFlux&type=date&legend=top-left">
  <picture>
@@ -35,7 +36,9 @@ If you enjoy Flux, you can support the project:
    <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=nxtcoreee3/Flux&type=date&legend=top-left" />
  </picture>
 </a>
+
 ⸻
+
 # Credits
 
 Created by nxtcoreee3

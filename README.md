@@ -26,9 +26,15 @@ If you enjoy Flux, you can support the project:
 ☕ Buy us a coffee on Ko-Fi
 
 ⸻
-# Stars
-[https://www.star-history.com/?repos=nxtcoreee3%2FFlux&type=date&legend=top-left)
+## Star History
 
+<a href="https://www.star-history.com/?repos=nxtcoreee3%2FFlux&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=nxtcoreee3/Flux&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=nxtcoreee3/Flux&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=nxtcoreee3/Flux&type=date&legend=top-left" />
+ </picture>
+</a>
 ⸻
 # Credits
 

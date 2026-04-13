@@ -26,7 +26,10 @@ If you enjoy Flux, you can support the project:
 ☕ Buy us a coffee on Ko-Fi
 
 ⸻
+# Stars
+[https://www.star-history.com/?repos=nxtcoreee3%2FFlux&type=date&legend=top-left]
 
+⸻
 # Credits
 
 Created by nxtcoreee3

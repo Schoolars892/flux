@@ -255,7 +255,7 @@ const GAMES = [
   id: 'talking-tom-cat',
   title: 'Talking Tom Cat',
   thumb: 'assets/talking-tom-cat.png',
-  url: 'https://gamejolt.net/?token=bqzW8QdcQDbcDNK4Yfp6BAYtRazsrM',
+  url: 'https://gamejolt.net/?token=pUpjLeSCuADJLGguZw4X5LbU6NxbLv',
   desc: 'Play the original Talking Tom game through an emulator and interact with the classic pet. (Hosted by GameJolt)'
 },
 {

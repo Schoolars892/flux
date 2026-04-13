@@ -27,7 +27,7 @@ If you enjoy Flux, you can support the project:
 
 ⸻
 # Stars
-[https://www.star-history.com/?repos=nxtcoreee3%2FFlux&type=date&legend=top-left]
+[https://www.star-history.com/?repos=nxtcoreee3%2FFlux&type=date&legend=top-left)
 
 ⸻
 # Credits

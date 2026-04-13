@@ -257,6 +257,13 @@ const GAMES = [
   thumb: 'assets/talking-tom-cat.png',
   url: 'https://gamejolt.net/?token=bqzW8QdcQDbcDNK4Yfp6BAYtRazsrM',
   desc: 'Play the original Talking Tom game through an emulator and interact with the classic pet. (Hosted by GameJolt)'
+},
+{
+  id: 'subway-surfers-mexico',
+  title: 'Subway Surfers Mexico',
+  thumb: 'assets/subway-surfers-mexico.png',
+  url: 'https://nxtcoreee3.github.io/Subway-Surfers-Mexico/',
+  desc: 'Run through tracks, dodge trains, and collect coins in this Mexico-themed endless runner.'
 }
 ];
 

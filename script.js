@@ -122,7 +122,7 @@ const GAMES = [
     id: '5-nights-at-epsteins',
     title: '5 Nights At Epsteins',
     thumb: 'assets/5-nights-at-epsteins.png',
-    url: 'https://nxtcoreee3.github.io/5-Nights-At-Epsteins/',
+    url: 'https://zackthehack362b.github.io/FNAE-Local/',
     desc: 'Survive five nights using cameras, strategy, and quick reactions to avoid danger.'
   },
   {
